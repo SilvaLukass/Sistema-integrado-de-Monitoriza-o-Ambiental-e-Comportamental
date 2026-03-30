@@ -14,6 +14,12 @@
     "online": "Todos os Sistemas Online",
     "offline": "Sistema Offline"
   },
+  "settings": {
+    "simpleMode": "Modo simples",
+    "simpleModeDescription": "Mostrar apenas estado online/offline",
+    "simpleModeOn": "Ligado",
+    "simpleModeOff": "Desligado"
+  },
   "common": {
     "minutesAgo": "Há {{count}} min",
     "hoursAgo": "Há {{count}} horas",

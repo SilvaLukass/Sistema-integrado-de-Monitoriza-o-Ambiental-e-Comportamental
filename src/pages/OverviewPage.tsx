@@ -3,6 +3,7 @@ import { ShieldCheck, Activity, Leaf, Bell, Cpu, Wifi } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
 import type { Alert, AlertSeverity } from '../types'
 import { getAlerts } from '../api/backend'
+import { useAppStore } from '../store/appStore'
 
 // tipos locais
 // Definir os tipos aqui (e não em types/index.ts) porque são específicos
@@ -238,6 +239,7 @@ function RecentAlertsCard() {
 
 function DeviceStatusCard() {
   const { t } = useTranslation()
+  const simpleMode = useAppStore((state) => state.simpleMode)
 
   const mockDevices: DeviceItem[] = [
     { id: '1', name: `${t('sensors.pir')} - ${t('rooms.livingRoom')}`, room: t('rooms.livingRoom'), online: true, battery: 87, lastSeen: t('common.minutesAgo', { count: 2 }) },
@@ -259,21 +261,33 @@ function DeviceStatusCard() {
           <div key={device.id} className="border border-[#e5e7eb] rounded-[14px] px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <Wifi size={20} className="text-[#2563eb] shrink-0" />
+                <Wifi size={20} className={device.online ? 'text-[#2563eb] shrink-0' : 'text-[#9ca3af] shrink-0'} />
                 <div>
                   <p className="font-semibold text-base text-[#101828]">{device.name}</p>
-                  <p className="text-sm text-[#6a7282]">{device.room}</p>
+                  {!simpleMode && <p className="text-sm text-[#6a7282]">{device.room}</p>}
                 </div>
               </div>
-              <p className="text-sm font-medium text-[#4a5565]">{device.battery}%</p>
+              {simpleMode ? (
+                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
+                  device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
+                }`}>
+                  {device.online ? t('status.online') : t('status.offline')}
+                </span>
+              ) : (
+                <p className="text-sm font-medium text-[#4a5565]">{device.battery}%</p>
+              )}
             </div>
 
-            <div className="flex items-center justify-between mt-3">
-              <span className="bg-[#f0fdf4] text-[#10b981] text-xs font-medium px-2 py-1 rounded-[10px]">
-                {device.online ? t('status.online') : t('status.offline')}
-              </span>
-              <p className="text-xs text-[#6a7282]">{t('common.lastSeenTime', { time: device.lastSeen })}</p>
-            </div>
+            {!simpleMode && (
+              <div className="flex items-center justify-between mt-3">
+                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
+                  device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
+                }`}>
+                  {device.online ? t('status.online') : t('status.offline')}
+                </span>
+                <p className="text-xs text-[#6a7282]">{t('common.lastSeenTime', { time: device.lastSeen })}</p>
+              </div>
+            )}
           </div>
         ))}
       </div>

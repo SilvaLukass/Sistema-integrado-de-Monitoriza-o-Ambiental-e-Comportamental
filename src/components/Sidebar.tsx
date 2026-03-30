@@ -13,6 +13,8 @@ const navItems = [
 export default function Sidebar() {
   const { t, i18n } = useTranslation()
   const systemStatus = useAppStore((state) => state.systemStatus)
+  const simpleMode = useAppStore((state) => state.simpleMode)
+  const toggleSimpleMode = useAppStore((state) => state.toggleSimpleMode)
 
   return (
     <aside className="w-64 h-screen bg-white border-r border-[#e5e7eb] flex flex-col shrink-0">
@@ -55,6 +57,20 @@ export default function Sidebar() {
             </span>
           </div>
         </div>
+        <button
+          type="button"
+          onClick={toggleSimpleMode}
+          className={`w-full mt-3 px-3 py-2 rounded-[10px] text-sm font-medium transition-colors border ${
+            simpleMode
+              ? 'bg-[#2563eb] text-white border-[#2563eb]'
+              : 'bg-[#f3f4f6] text-[#4a5565] border-[#e5e7eb] hover:bg-[#e5e7eb]'
+          }`}
+        >
+          <span className="block">{t('settings.simpleMode')}</span>
+          <span className={`block text-xs mt-0.5 ${simpleMode ? 'text-[#dbeafe]' : 'text-[#6a7282]'}`}>
+            {simpleMode ? t('settings.simpleModeOn') : t('settings.simpleModeOff')}
+          </span>
+        </button>
 
         <div className="flex items-center justify-center gap-1 mt-3">
           {(['pt', 'en'] as const).map((lng) => (
