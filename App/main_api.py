@@ -1,11 +1,24 @@
 from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 import joblib
 import pandas as pd
 import numpy as np
+from data_processor import DataProcessor
 
 #Inicializar a Aplicação FastAPI
-app = FastAPI(title="Smart Home Anomaly API", description="API para proteção de idosos")
+app = FastAPI()
+
+# Configuração do CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"], # Permite qualquer origem (ideal para desenvolvimento)
+    allow_credentials=True,
+    allow_methods=["*"], # Permite todos os métodos (GET, POST, etc.)
+    allow_headers=["*"], # Permite todos os headers
+)
+
+processor = DataProcessor('kaggle_smartHome_data.csv')
 
 #Carregar o modelo e o scaler
 try:
@@ -25,6 +38,10 @@ class SensorData(BaseModel):
     motion: bool
     smoke: float
     temp: float
+
+@app.get("/predict/heatmap")
+def heatmap():
+    return processor.get_heatmap_stats()
 
 @app.post("/analisar") #Cria uma rota principal para a FastAPI
 def analisar_sensores(dados: SensorData):

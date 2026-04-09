@@ -11,3 +11,9 @@ __pycache__/
 # Ignorar ambientes virtuais (caso tenhas a pasta venv aí dentro)
 venv/
 env/
+
+# Ignorar o dataset gigante
+new_labeled_data/
+
+# Ignorar as imagens geradas pelos gráficos
+*.png
