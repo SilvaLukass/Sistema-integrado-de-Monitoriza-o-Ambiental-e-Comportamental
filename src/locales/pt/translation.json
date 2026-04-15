@@ -1,0 +1,166 @@
+{
+  "nav": {
+    "overview": "Visão Geral",
+    "history": "Histórico",
+    "deviceStatus": "Estado dos Dispositivos",
+    "alerts": "Alertas"
+  },
+  "app": {
+    "name": "ElderCare",
+    "subtitle": "Sistema de Monitorização"
+  },
+  "systemStatus": {
+    "label": "Estado do Sistema",
+    "online": "Todos os Sistemas Online",
+    "offline": "Sistema Offline"
+  },
+  "settings": {
+    "simpleMode": "Modo simples",
+    "simpleModeDescription": "Mostrar apenas estado online/offline",
+    "simpleModeOn": "Ligado",
+    "simpleModeOff": "Desligado"
+  },
+  "common": {
+    "minutesAgo": "Há {{count}} min",
+    "hoursAgo": "Há {{count}} horas",
+    "justNow": "Agora mesmo",
+    "lastSeenTime": "Última vez: {{time}}"
+  },
+  "status": {
+    "good": "Bom",
+    "warning": "Atenção",
+    "danger": "Perigo",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "overview": {
+    "title": "Visão Geral",
+    "safetyTitle": "Estado de Segurança",
+    "lastUpdate": "Última atualização: agora mesmo",
+    "allClear": "Tudo Normal",
+    "residentActivity": "Atividade do Residente",
+    "recentMovements": "Movimentos recentes detetados",
+    "environmentalHealth": "Saúde Ambiental",
+    "airQualityTemp": "Qualidade do ar e temperatura",
+    "recentAlerts": "Alertas Recentes",
+    "last24h": "Últimas 24 horas",
+    "deviceStatus": "Estado dos Dispositivos",
+    "devicesOnline": "{{online}} de {{total}} online"
+  },
+  "alerts": {
+    "title": "Todos os Alertas",
+    "recentAlerts": "Alertas Recentes",
+    "last24h": "Últimas 24 horas",
+    "noActivity": "Nenhuma Atividade Detetada",
+    "noMovement": "Sem movimento nas últimas 3 horas",
+    "tempResolved": "Alerta de Temperatura Resolvido",
+    "tempResolvedDesc": "Temperatura do quarto regressou ao intervalo normal",
+    "dailyCheck": "Verificação Diária",
+    "dailyCheckDesc": "Todos os sistemas a funcionar normalmente"
+  },
+  "sensors": {
+    "pir": "Sensor PIR",
+    "door": "Sensor de Porta",
+    "co2": "CO₂",
+    "temperature": "Temperatura",
+    "humidity": "Humidade",
+    "gas": "Sensor de Gás",
+    "airQuality": "Qualidade do Ar",
+    "movementDetected": "Movimento detetado",
+    "doorOpened": "Porta aberta"
+  },
+  "activities": {
+    "Bed_to_Toilet": "Ida à Casa de Banho",
+    "Eating": "Refeição",
+    "Enter_Home": "Chegada a Casa",
+    "Housekeeping": "Limpezas",
+    "Leave_Home": "Saída de Casa",
+    "Meal_Preparation": "Preparação de Refeição",
+    "Relax": "Descanso / Lazer",
+    "Respirate": "Dificuldade Respiratória",
+    "Sleeping": "A Dormir",
+    "Wash_Dishes": "Lavar a Loiça",
+    "Work": "A Trabalhar"
+  },
+  "rooms": {
+    "livingRoom": "Sala de Estar",
+    "kitchen": "Cozinha",
+    "bedroom": "Quarto",
+    "mainDoor": "Porta Principal",
+    "mainEntrance": "Entrada Principal"
+  },
+  "history": {
+    "multisensorAnalysis": "Análise Multissensorial (24h)",
+    "multisensorDesc": "Correlação entre Rotina, Ambiente e Qualidade do Ar",
+    "overview": "Visão Geral",
+    "routineActivity": "Atividade (Rotina)",
+    "sleepPatternTitle": "Padrão de Sono",
+    "sleepPatternDesc": "Atividade mínima entre as 23h e as 07h indicam repouso contínuo sem interrupções.",
+    "climateStableTitle": "Clima Estável",
+    "climateStableDesc": "Aquecimento eficiente. Humidade mantida acima dos 40% durante a noite.",
+    "gasPeaksTitle": "Picos de Gás Observados",
+    "gasPeaksDesc": "Níveis de CO2 atingiram 1400ppm às 19:00h (hora de jantar), dispersando normalmente em 45 minutos."
+  },
+  "heatmap": {
+    "title": "Mapa de Calor de Ocupação Semanal",
+    "subtitle": "Padrões de atividade por dia e hora",
+    "activityLevel": "Nível de Atividade",
+    "low": "Baixo",
+    "high": "Alto",
+    "mostActive": "Mais Ativo",
+    "leastActive": "Menos Ativo",
+    "averageActivity": "Atividade Média",
+    "noActivity": "Sem atividade",
+    "lowActivity": "Atividade baixa",
+    "moderateActivity": "Atividade moderada",
+    "highActivity": "Atividade elevada",
+    "maxActivity": "Atividade máxima"
+  },
+  "days": {
+    "monday": "Segunda",
+    "tuesday": "Terça",
+    "wednesday": "Quarta",
+    "thursday": "Quinta",
+    "friday": "Sexta",
+    "saturday": "Sábado",
+    "sunday": "Domingo"
+  },
+  "airQuality": {
+    "title": "Índice de Qualidade do Ar",
+    "subtitle": "Monitorização ambiental em tempo real",
+    "score": "Pontuação IQA",
+    "scaleReference": "Referência da Escala IQA",
+    "good": "Bom",
+    "goodDesc": "A qualidade do ar é excelente",
+    "moderate": "Moderado",
+    "moderateDesc": "Qualidade do ar aceitável",
+    "bad": "Mau",
+    "badDesc": "Qualidade do ar prejudicial"
+  },
+  "deviceStatus": {
+    "title": "Estado dos Dispositivos",
+    "subtitle": "Saúde do sistema e dispositivos ligados",
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeen": "Visto pela última vez",
+    "rpiController": "Controlador Raspberry Pi",
+    "rpiSubtitle": "Unidade central de processamento",
+    "cpuUsage": "Uso de CPU",
+    "memoryUsage": "Uso de Memória",
+    "temperature": "Temperatura",
+    "uptime": "Tempo Ativo",
+    "withinLimits": "Dentro dos limites",
+    "daysHours": "Dias:Horas",
+    "connectedSensors": "Sensores Ligados",
+    "sensorsOnline": "{{online}} de {{total}} sensores online",
+    "pirMotionSensor": "Sensor PIR de Movimento",
+    "magneticDoorSensor": "Sensor Magnético de Porta",
+    "airQualitySensor": "Sensor de Qualidade do Ar",
+    "state": "Estado",
+    "battery": "Bateria",
+    "temp": "Temp",
+    "lastUpdate": "Última atualização",
+    "allDevices": "Estado dos Dispositivos",
+    "devicesOnline": "{{online}} de {{total}} online"
+  }
+}
