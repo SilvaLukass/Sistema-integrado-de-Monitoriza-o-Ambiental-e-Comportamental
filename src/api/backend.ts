@@ -14,6 +14,24 @@ export interface CreateAlertResponse {
   notification_error: string | null
 }
 
+export interface ModelInferencePayload {
+  readings: Record<string, number>
+}
+
+export interface ModelInferenceResponse {
+  expected_activity: string
+  confidence: number
+  is_anomaly: boolean
+  reason: string
+  alert_created: boolean
+}
+
+export interface OccupancyHeatmapCell {
+  day: number
+  hour: number
+  value: number
+}
+
 async function parseJson<T>(res: Response, context: string): Promise<T> {
   if (!res.ok) {
     throw new Error(`${context}: ${res.status}`)
@@ -33,5 +51,19 @@ export async function createAlert(payload: CreateAlertPayload): Promise<CreateAl
     body: JSON.stringify(payload),
   })
   return parseJson<CreateAlertResponse>(res, 'Erro ao criar alerta')
+}
+
+export async function inferModel(payload: ModelInferencePayload): Promise<ModelInferenceResponse> {
+  const res = await fetch(`${API_URL}/api/model/infer`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  })
+  return parseJson<ModelInferenceResponse>(res, 'Erro ao inferir modelo')
+}
+
+export async function getOccupancyHeatmap(): Promise<OccupancyHeatmapCell[]> {
+  const res = await fetch(`${API_URL}/api/model/occupancy-heatmap`)
+  return parseJson<OccupancyHeatmapCell[]>(res, 'Erro ao buscar heatmap')
 }
 

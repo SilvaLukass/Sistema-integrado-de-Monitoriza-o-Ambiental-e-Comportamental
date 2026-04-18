@@ -1,9 +1,9 @@
 import { useMemo } from 'react'
 import { useTranslation } from 'react-i18next'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { useQuery } from '@tanstack/react-query'
 import { AlertTriangle, CheckCircle, Info } from 'lucide-react'
 import type { Alert, AlertSeverity } from '../types'
-import { createAlert, getAlerts } from '../api/backend'
+import { getAlerts } from '../api/backend'
 
 // Mapeia a severidade do alerta para as cores do mockup do Figma
 const severityStyles: Record<AlertSeverity, { bg: string; border: string; icon: React.ReactNode }> = {
@@ -58,76 +58,26 @@ function AlertItem({ alert }: { alert: Alert }) {
 
 export default function AlertsPage() {
   const { t } = useTranslation()
-  const queryClient = useQueryClient()
 
   const { data: alerts = [], isLoading, isError, error } = useQuery({
     queryKey: ['alerts'],
     queryFn: getAlerts,
   })
-
-  const { mutate: sendTestAlert, isPending: isSendingTest } = useMutation({
-    mutationFn: () =>
-      createAlert({
-        title: 'Teste manual',
-        description: 'Alerta criado a partir da interface para validar o fluxo.',
-        severity: 'info',
-      }),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['alerts'] })
-    },
-  })
-
-  const fallbackAlerts: Alert[] = [
-    {
-      id: '1',
-      title: t('alerts.noActivity'),
-      description: t('alerts.noMovement'),
-      severity: 'warning',
-      timestamp: t('common.minutesAgo', { count: 10 }),
-      resolved: false,
-    },
-    {
-      id: '2',
-      title: t('alerts.tempResolved'),
-      description: t('alerts.tempResolvedDesc'),
-      severity: 'success',
-      timestamp: t('common.hoursAgo', { count: 2 }),
-      resolved: true,
-    },
-    {
-      id: '3',
-      title: t('alerts.dailyCheck'),
-      description: t('alerts.dailyCheckDesc'),
-      severity: 'info',
-      timestamp: t('common.hoursAgo', { count: 5 }),
-      resolved: true,
-    },
-  ]
-  const renderedAlerts = alerts.length > 0 ? alerts : fallbackAlerts
+  const renderedAlerts: Alert[] = alerts
 
   return (
     <div>
       <h1 className="text-2xl font-semibold text-[#101828]">{t('alerts.title')}</h1>
 
       <div className="mt-6 bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm p-6">
-        <div className="flex items-center justify-between gap-3 mb-6">
-          <div className="flex items-center gap-3">
-            <div className="size-10 bg-[#fffbeb] rounded-[14px] flex items-center justify-center">
-              <AlertTriangle size={20} className="text-[#f59e0b]" />
-            </div>
-            <div>
-              <p className="font-semibold text-lg text-[#101828]">{t('alerts.recentAlerts')}</p>
-              <p className="text-sm text-[#6a7282]">{t('alerts.last24h')}</p>
-            </div>
+        <div className="flex items-center gap-3 mb-6">
+          <div className="size-10 bg-[#fffbeb] rounded-[14px] flex items-center justify-center">
+            <AlertTriangle size={20} className="text-[#f59e0b]" />
           </div>
-          <button
-            type="button"
-            onClick={() => sendTestAlert()}
-            disabled={isSendingTest}
-            className="px-3 py-2 rounded-lg border border-[#d1d5db] text-sm font-medium text-[#101828] disabled:opacity-60"
-          >
-            {isSendingTest ? 'A enviar...' : 'Enviar teste'}
-          </button>
+          <div>
+            <p className="font-semibold text-lg text-[#101828]">{t('alerts.recentAlerts')}</p>
+            <p className="text-sm text-[#6a7282]">{t('alerts.last24h')}</p>
+          </div>
         </div>
 
         {isLoading && (
@@ -140,6 +90,11 @@ export default function AlertsPage() {
         )}
 
         <div className="flex flex-col gap-3">
+          {renderedAlerts.length === 0 && (
+            <div className="border border-dashed border-[#d0d5dd] rounded-[14px] px-4 py-5 text-sm text-[#6a7282]">
+              Sem alertas para mostrar.
+            </div>
+          )}
           {renderedAlerts.map((alert) => (
             <AlertItem key={alert.id} alert={alert} />
           ))}

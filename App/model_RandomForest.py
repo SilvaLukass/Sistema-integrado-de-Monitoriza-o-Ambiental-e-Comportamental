@@ -222,7 +222,7 @@ def plot_results(rf_model, feature_cols, X_test, y_test, y_pred,
 # -----------------------------------------------------------------------
 if __name__ == "__main__":
 
-    processor = DataProcessor()
+    processor = DataProcessor('aruba.txt')
     matrix    = processor.get_matrix_for_model()
 
     if matrix.empty:

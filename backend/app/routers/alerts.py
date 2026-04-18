@@ -52,8 +52,7 @@ async def list_alerts(request: Request):
     return store.list()
 
 
-@router.post("/api/alerts", response_model=AlertCreateResult)
-async def create_alert(payload: AlertCreate, request: Request):
+async def create_and_notify_alert(payload: AlertCreate, request: Request) -> AlertCreateResult:
     alert = Alert(
         id=str(uuid4()),
         title=payload.title,
@@ -81,3 +80,8 @@ async def create_alert(payload: AlertCreate, request: Request):
             notification_sent=False,
             notification_error=str(exc),
         )
+
+
+@router.post("/api/alerts", response_model=AlertCreateResult)
+async def create_alert(payload: AlertCreate, request: Request):
+    return await create_and_notify_alert(payload, request)

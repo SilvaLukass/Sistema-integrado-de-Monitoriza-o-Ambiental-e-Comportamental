@@ -1,58 +1,14 @@
 import { useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { LayoutGrid } from 'lucide-react'
-
-interface HeatmapCell {
-  day: number
-  hour: number
-  value: number  
-}
+import { useQuery } from '@tanstack/react-query'
+import { getOccupancyHeatmap, type OccupancyHeatmapCell } from '../api/backend'
 
 const DAY_KEYS = [
   'days.monday', 'days.tuesday', 'days.wednesday', 'days.thursday',
   'days.friday', 'days.saturday', 'days.sunday',
 ]
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
-
-// - Madrugada (0-5h): atividade muito baixa
-// - Manhã (6-10h): pico de atividade
-// - Tarde (11-18h): atividade moderada
-// - Noite (19-22h): atividade moderada a baixa
-// - Fim de semana: padrão diferente (acorda mais tarde)
-function generateMockData(): HeatmapCell[] {
-  const cells: HeatmapCell[] = []
-
-  for (let day = 0; day < 7; day++) {
-    const isWeekend = day >= 5
-
-    for (let hour = 0; hour < 24; hour++) {
-      let base = 0
-
-      if (!isWeekend) {
-        if (hour >= 0 && hour < 5)  base = Math.random() * 5
-        else if (hour >= 5 && hour < 7)  base = 10 + Math.random() * 20
-        else if (hour >= 7 && hour < 10) base = 60 + Math.random() * 35
-        else if (hour >= 10 && hour < 13) base = 40 + Math.random() * 25
-        else if (hour >= 13 && hour < 15) base = 50 + Math.random() * 30
-        else if (hour >= 15 && hour < 18) base = 45 + Math.random() * 25
-        else if (hour >= 18 && hour < 21) base = 35 + Math.random() * 20
-        else base = 10 + Math.random() * 15
-      } else {
-        if (hour >= 0 && hour < 7)  base = Math.random() * 5
-        else if (hour >= 7 && hour < 10) base = 15 + Math.random() * 20
-        else if (hour >= 10 && hour < 20) base = 40 + Math.random() * 35
-        else base = 10 + Math.random() * 20
-      }
-
-      cells.push({ day, hour, value: Math.round(Math.min(base, 100)) })
-    }
-  }
-
-  return cells
-}
-
-// Instanciado fora do componente para não regenerar em cada render
-const mockData = generateMockData()
 
 // Converte um valor 0-100 numa cor.
 // Abaixo de 5 → cinzento (sem atividade).
@@ -80,13 +36,27 @@ interface TooltipState {
 export function OccupancyHeatmap() {
   const { t } = useTranslation()
   const [tooltip, setTooltip] = useState<TooltipState | null>(null)
+  const { data = [] } = useQuery({
+    queryKey: ['occupancy-heatmap'],
+    queryFn: getOccupancyHeatmap,
+    refetchInterval: 15000,
+  })
+
+  const heatmapData: OccupancyHeatmapCell[] =
+    data.length === 168
+      ? data
+      : Array.from({ length: 7 * 24 }, (_, idx) => ({
+          day: Math.floor(idx / 24),
+          hour: idx % 24,
+          value: 0,
+        }))
 
   const days = DAY_KEYS.map(key => t(key))
 
-  const totalAtivo = mockData.reduce((sum, c) => sum + c.value, 0)
-  const mediaAtividade = Math.round(totalAtivo / mockData.length)
-  const maisAtivo = mockData.reduce((max, c) => c.value > max.value ? c : max)
-  const menosAtivo = mockData
+  const totalAtivo = heatmapData.reduce((sum, c) => sum + c.value, 0)
+  const mediaAtividade = Math.round(totalAtivo / heatmapData.length)
+  const maisAtivo = heatmapData.reduce((max, c) => (c.value > max.value ? c : max), heatmapData[0])
+  const menosAtivo = heatmapData
     .filter(c => c.value > 5)
     .reduce((min, c) => c.value < min.value ? c : min, { value: 999, day: 0, hour: 0 })
 
@@ -137,7 +107,7 @@ export function OccupancyHeatmap() {
 
               <div className="flex gap-1 flex-1">
                 {HOURS.map(hour => {
-                const cell = mockData.find(c => c.day === dayIndex && c.hour === hour)!
+                const cell = heatmapData.find(c => c.day === dayIndex && c.hour === hour)!
                 return (
                 <div
                     key={hour}

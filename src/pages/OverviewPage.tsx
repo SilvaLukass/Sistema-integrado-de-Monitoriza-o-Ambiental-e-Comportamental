@@ -1,9 +1,11 @@
 import { useTranslation } from 'react-i18next'
-import { ShieldCheck, Activity, Leaf, Bell, Cpu, Wifi } from 'lucide-react'
+import { ShieldCheck, Activity, Leaf, Bell, Cpu, Wifi, AlertTriangle, Flame } from 'lucide-react'
 import { useQuery } from '@tanstack/react-query'
-import type { Alert, AlertSeverity } from '../types'
+import type { AlertSeverity } from '../types'
 import { getAlerts } from '../api/backend'
+import { inferModel, type ModelInferenceResponse } from '../api/backend'
 import { useAppStore } from '../store/appStore'
+import { useState, useEffect } from 'react'
 
 // tipos locais
 // Definir os tipos aqui (e não em types/index.ts) porque são específicos
@@ -35,7 +37,6 @@ interface DeviceItem {
   battery: number
   lastSeen: string
 }
-
 function CardHeader({ icon, title, subtitle, iconBg }: {
   icon: React.ReactNode
   title: string
@@ -57,22 +58,112 @@ function CardHeader({ icon, title, subtitle, iconBg }: {
 
 function SafetyStatusHeader() {
   const { t } = useTranslation()
+  const [aiStatus, setAiStatus] = useState<ModelInferenceResponse | null>(null)
+  const [error, setError] = useState<boolean>(false)
+
+  // Descobrir a hora atual
+  const now = new Date()
+  const currentHour = now.getHours()
+  const currentMinute = now.getMinutes()
+  const jsDay = now.getDay() // 0=domingo ... 6=sabado
+  const pandasDayOfWeek = (jsDay + 6) % 7 // 0=segunda ... 6=domingo
+
+  // Simular sensores de forma inteligente baseada na hora!
+  const currentSensorData = {
+    "hour": currentHour,
+    "day_of_week": pandasDayOfWeek,
+    "minute": currentMinute,
+    "M003": currentHour >= 23 || currentHour <= 7 ? 1.0 : 0.0, // Movimento na cama de noite
+    "T001": 22.5,
+    // Simulamos o pico de CO2 apenas à hora de jantar (19h ou 20h)
+    "CO2": (currentHour === 19 || currentHour === 20) ? 1600 : 450
+  }
+
+  useEffect(() => {
+    const checkAI = async () => {
+      try {
+        const data = await inferModel({ readings: currentSensorData })
+        setAiStatus(data)
+        setError(false)
+      } catch (e) {
+        console.error(e)
+        setError(true)
+      }
+    }
+
+    checkAI()
+    const interval = setInterval(checkAI, 10000)
+    return () => clearInterval(interval)
+  }, [])
+
+  // 1. Lógica de Anomalia da IA (Comportamento)
+  const isRoutineAnomaly = aiStatus?.is_anomaly;
+
+  // 2. Lógica de Perigo Ambiental (CO2 > 1200 = Mau/Perigoso)
+  // No futuro, este valor virá dos teus sensores reais.
+  const isAirQualityDanger = currentSensorData.CO2 > 1200;
+
+  // Se houver QUALQUER um dos problemas, o ecrã fica vermelho.
+  const isDanger = isRoutineAnomaly || isAirQualityDanger;
+
+  const bgColor = isDanger ? 'bg-[#fff1f2]' : 'bg-[#f0fdf4]'
+  const borderColor = isDanger ? 'border-[#ef4444]' : 'border-[#10b981]'
+  const textColor = isDanger ? 'text-[#ef4444]' : 'text-[#10b981]'
+  const Icon = isDanger ? AlertTriangle : ShieldCheck
 
   return (
-    <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm px-6 py-6">
+    <div className={`bg-white border rounded-[14px] shadow-sm px-6 py-6 transition-colors duration-500 ${isDanger ? 'border-[#ef4444]' : 'border-[#e5e7eb]'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="size-16 bg-[#f0fdf4] rounded-[14px] flex items-center justify-center">
-            <ShieldCheck size={32} className="text-[#10b981]" />
+          <div className={`size-16 ${bgColor} rounded-[14px] flex items-center justify-center`}>
+            {isAirQualityDanger && !isRoutineAnomaly ? (
+              <Flame size={32} className={textColor} />
+            ) : (
+              <Icon size={32} className={textColor} />
+            )}
           </div>
           <div>
-            <p className="font-semibold text-2xl text-[#101828]">{t('overview.safetyTitle')}</p>
-            <p className="text-sm text-[#6a7282] mt-1">{t('overview.lastUpdate')}</p>
+            <p className="font-semibold text-2xl text-[#101828]">
+              {isAirQualityDanger ? 'Alerta: Qualidade do Ar Perigosa!' :
+                isRoutineAnomaly ? 'Anomalia Detetada na Rotina!' :
+                  t('overview.safetyTitle')}
+            </p>
+
+            <p className="text-sm text-[#6a7282] mt-1">
+              {error ? 'A tentar ligar à Inteligência Artificial...' :
+                aiStatus ? (
+                  <>
+                    {/* Se for perigo de CO2, destacamos isso primeiro */}
+                    {isAirQualityDanger && (
+                      <span className="font-bold text-red-600 block mb-1">
+                        Níveis de CO2 atuais: {currentSensorData.CO2} ppm
+                      </span>
+                    )}
+                    A prever <strong>{t(`activities.${aiStatus.expected_activity}`, { defaultValue: aiStatus.expected_activity })}</strong><br></br>
+                    <span className="text-xs italic text-gray-500">
+                      Baseado {aiStatus.reason || "nos padroes recentes."} Confianca: {aiStatus.confidence.toFixed(1)}%
+                    </span>
+                  </>
+                ) : 'A analisar sensores...'}
+            </p>
+
+            {aiStatus && !error && (
+              <button
+                onClick={() => alert("Feedback guardado! A sua correção será usada para treinar o modelo na próxima semana.")}
+                className="mt-3 text-xs font-medium text-[#2563eb] hover:text-blue-800 underline transition-colors"
+              >
+                A atividade não é esta? Corrigir IA
+              </button>
+            )}
           </div>
         </div>
-        <div className="border-2 border-[#10b981] bg-[#f0fdf4] rounded-[14px] px-6 py-3">
-          <p className="font-semibold text-lg text-[#10b981]">{t('overview.allClear')}</p>
-        </div>
+        {aiStatus && !error && (
+          <div className={`border-2 ${borderColor} ${bgColor} rounded-[14px] px-6 py-3 text-center`}>
+            <p className={`font-semibold text-lg ${textColor}`}>
+              {isDanger ? 'Requer Atenção' : t('overview.allClear')}
+            </p>
+          </div>
+        )}
       </div>
     </div>
   )
@@ -202,14 +293,7 @@ function RecentAlertsCard() {
     queryKey: ['alerts'],
     queryFn: getAlerts,
   })
-
-  const fallbackAlerts: Alert[] = [
-    { id: '1', title: t('alerts.noActivity'), description: t('alerts.noMovement'), timestamp: new Date().toISOString(), severity: 'warning', resolved: false },
-    { id: '2', title: t('alerts.tempResolved'), description: t('alerts.tempResolvedDesc'), timestamp: new Date().toISOString(), severity: 'success', resolved: true },
-    { id: '3', title: t('alerts.dailyCheck'), description: t('alerts.dailyCheckDesc'), timestamp: new Date().toISOString(), severity: 'info', resolved: true },
-  ]
-
-  const renderedAlerts = (alerts.length > 0 ? alerts : fallbackAlerts).slice(0, 3)
+  const renderedAlerts = alerts.slice(0, 3)
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm p-6 flex flex-col gap-6">
@@ -221,6 +305,11 @@ function RecentAlertsCard() {
       />
 
       <div className="flex flex-col gap-3">
+        {renderedAlerts.length === 0 && (
+          <div className="border border-dashed border-[#d0d5dd] rounded-[14px] px-4 py-5 text-sm text-[#6a7282]">
+            Sem alertas recentes.
+          </div>
+        )}
         {renderedAlerts.map((alert) => (
           <div key={alert.id} className={`${severityStyles[alert.severity]} border rounded-[14px] px-4 py-4`}>
             <div className="flex items-start justify-between gap-2">
