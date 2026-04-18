@@ -1,0 +1,19 @@
+# Ignorar ficheiros de dados pesados
+*.csv
+
+# Ignorar modelos de Machine Learning guardados
+*.pkl
+
+# Ignorar pastas geradas automaticamente pelo Python
+__pycache__/
+*.pyc
+
+# Ignorar ambientes virtuais (caso tenhas a pasta venv aí dentro)
+venv/
+env/
+
+# Ignorar o dataset gigante
+new_labeled_data/
+
+# Ignorar as imagens geradas pelos gráficos
+*.png
