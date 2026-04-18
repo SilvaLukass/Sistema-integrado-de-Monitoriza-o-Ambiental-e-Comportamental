@@ -29,6 +29,7 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score, ConfusionMatrixDisplay
 from imblearn.over_sampling import SMOTE
 
+
 from data_processor import DataProcessor
 
 
@@ -96,7 +97,6 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
     
     print(f"Treino após SMOTE: {X_train_resampled.shape[0]} amostras sintéticas equilibradas")
 
-
     print("\n=== Passo 3: Treinar RandomForest ===")
 
     rf_model = RandomForestClassifier(
@@ -110,7 +110,6 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
 
     rf_model.fit(X_train_resampled, y_train_resampled)
     print("  Treino concluído!")
-
 
     print("\n=== Passo 4: Avaliar ===")
 
