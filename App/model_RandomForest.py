@@ -27,6 +27,8 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score, ConfusionMatrixDisplay
+from imblearn.over_sampling import SMOTE
+
 
 from data_processor import DataProcessor
 
@@ -60,12 +62,6 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
 
     matrix = matrix.copy()
 
-    # Extrair hora e dia do índice temporal para o modelo "aprender o calendário"
-    matrix['hour']        = matrix.index.hour
-    matrix['day_of_week'] = matrix.index.dayofweek
-    # Minuto pode ajudar a distinguir rotinas muito precisas (ex: alarme às 07:30)
-    matrix['minute']      = matrix.index.minute
-
     feature_cols = [c for c in matrix.columns if c != 'label_encoded']
     X = matrix[feature_cols]
     y = matrix['label_encoded']
@@ -92,6 +88,14 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
     print(f"  Treino : {len(X_train):,} minutos  (primeiros 80% do histórico)")
     print(f"  Teste  : {len(X_test):,} minutos  (últimos 20% do histórico)")
 
+    smote = SMOTE(random_state=42, k_neighbors=3) 
+    
+    print(f"A equilibrar balança... (Treino inicial: {X_train.shape[0]} amostras)")
+    
+    # O SMOTE vai criar "gémeos" sintéticos das atividades raras até todas terem o mesmo peso
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    
+    print(f"Treino após SMOTE: {X_train_resampled.shape[0]} amostras sintéticas equilibradas")
 
     print("\n=== Passo 3: Treinar RandomForest ===")
 
@@ -104,9 +108,8 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
         n_jobs=-1
     )
 
-    rf_model.fit(X_train, y_train)
+    rf_model.fit(X_train_resampled, y_train_resampled)
     print("  Treino concluído!")
-
 
     print("\n=== Passo 4: Avaliar ===")
 

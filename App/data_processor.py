@@ -77,7 +77,8 @@ class DataProcessor:
         self._prepare_labels()  #Chamamos a função responsável por codificar as labels
 
     def _prepare_labels(self):
-        
+        if self.df is None: return #Caso o dataframe não exista, saímos da função
+
         le = LabelEncoder()     #Buscamos a função encoder da biblioteca sklearn
         
         # O LabelEncoder transforma ['Eating', 'Sleeping', 'Eating'] em [0, 1, 0]
@@ -162,6 +163,47 @@ class DataProcessor:
         matrix[feature_cols] = matrix[feature_cols].fillna(0)               #Preenchemos os buracos dos sensores
 
         matrix.columns.name = None  #Removemos o nome do índice de colunas deixado pelo pivot_table
+        
+        # Convertendo o índice para datetime, caso ainda não seja
+        dt_index = pd.to_datetime(matrix.index)
+
+        #Tempo e rotina. 
+        #Um ser humano é rotineiro, e o tempo é um fator importante para determinar o que ele está a fazer.
+        #Se não guardarmos esta informação, o modelo não conseguirá aprender que, por exemplo, 
+        # às 3 da manhã é mais provável que a pessoa esteja a dormir do que a comer.
+        #Em vez de a hora 23 e a hora 0 estarem longe, usamos trigonometria 
+        # para mapear as horas num relógio de 24h.
+        hours_in_day = 24
+        matrix['hour_sin'] = np.sin(2 * np.pi * dt_index.hour / hours_in_day)
+        matrix['hour_cos'] = np.cos(2 * np.pi * dt_index.hour / hours_in_day)
+
+        matrix['is_weekend'] = pd.Series(dt_index).dt.dayofweek.isin([5, 6]).astype(int).values #1 se for fim de semana, 0 caso contrário
+
+        #A maioria dos sensores de movimento são binários, 
+        # e a soma deles pode ser um indicador útil de quanta atividade física está a acontecer.
+        binary_cols_present = [c for c in binary if c in matrix.columns]
+        matrix['total_motion_now'] = matrix[binary_cols_present].sum(axis=1)
+
+        # Além disso, podemos criar features que somam o movimento nos últimos minutos para capturar a duração da atividade.
+        novas_colunas = {}
+        for col in binary_cols_present:
+            novas_colunas[f'{col}_roll5_sum'] = matrix[col].rolling(window=5, min_periods=1).sum()
+            novas_colunas[f'{col}_roll15_sum'] = matrix[col].rolling(window=15, min_periods=1).sum()
+
+        # Juntamos todas as colunas novas de uma só vez (muito mais rápido e sem avisos)
+        if novas_colunas:
+            df_novas_colunas = pd.DataFrame(novas_colunas, index=matrix.index)
+            matrix = pd.concat([matrix, df_novas_colunas], axis=1)
+        
+        # Criamos uma máscara: 1 se houve algum movimento na casa, 0 se não houve
+        motion_mask = (matrix['total_motion_now'] > 0).astype(int)
+
+        s = motion_mask.cumsum()    #Contamos o número de 0 que tivemos até agora. Cada vez que temos um 1, o contador para e começa a contar os 0 novamente.
+        matrix['time_since_last_motion'] = s.groupby(s).cumcount()
+
+        # Preenchemos quaisquer valores em falta restantes com 0, 
+        # assumindo que a ausência de dados significa inatividade ou falta de leitura.
+        matrix = matrix.fillna(0)
 
         self.matrix = matrix
 
