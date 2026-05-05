@@ -1,0 +1,151 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "history": "History",
+    "deviceStatus": "Device Status",
+    "alerts": "Alerts"
+  },
+  "app": {
+    "name": "ElderCare",
+    "subtitle": "Monitoring System"
+  },
+  "systemStatus": {
+    "label": "System Status",
+    "online": "All Systems Online",
+    "offline": "System Offline"
+  },
+  "settings": {
+    "simpleMode": "Simple mode",
+    "simpleModeDescription": "Show only online/offline status",
+    "simpleModeOn": "Enabled",
+    "simpleModeOff": "Disabled"
+  },
+  "common": {
+    "minutesAgo": "{{count}} min ago",
+    "hoursAgo": "{{count}} hours ago",
+    "justNow": "Just now",
+    "lastSeenTime": "Last seen: {{time}}"
+  },
+  "status": {
+    "good": "Good",
+    "warning": "Warning",
+    "danger": "Danger",
+    "online": "Online",
+    "offline": "Offline"
+  },
+  "overview": {
+    "title": "Overview",
+    "safetyTitle": "Safety Status",
+    "lastUpdate": "Last update: just now",
+    "allClear": "All Clear",
+    "residentActivity": "Resident Activity",
+    "recentMovements": "Recent movements detected",
+    "environmentalHealth": "Environmental Health",
+    "airQualityTemp": "Air quality and temperature",
+    "recentAlerts": "Recent Alerts",
+    "last24h": "Last 24 hours",
+    "deviceStatus": "Device Status",
+    "devicesOnline": "{{online}} of {{total}} online"
+  },
+  "alerts": {
+    "title": "All Alerts",
+    "recentAlerts": "Recent Alerts",
+    "last24h": "Last 24 hours",
+    "noActivity": "No Activity Detected",
+    "noMovement": "No movement in the past 3 hours",
+    "tempResolved": "Temperature Alert Resolved",
+    "tempResolvedDesc": "Room temperature returned to normal range",
+    "dailyCheck": "Daily Check",
+    "dailyCheckDesc": "All systems operating normally"
+  },
+  "sensors": {
+    "pir": "PIR Sensor",
+    "door": "Door Sensor",
+    "co2": "CO₂",
+    "temperature": "Temperature",
+    "humidity": "Humidity",
+    "gas": "Gas Sensor",
+    "airQuality": "Air Quality",
+    "movementDetected": "Movement detected",
+    "doorOpened": "Door opened"
+  },
+  "rooms": {
+    "livingRoom": "Living Room",
+    "kitchen": "Kitchen",
+    "bedroom": "Bedroom",
+    "mainDoor": "Main Door",
+    "mainEntrance": "Main Entrance"
+  },
+  "history": {
+    "title": "History",
+    "subtitle": "Detailed analysis and historical patterns",
+    "activityTrends": "Activity Trends",
+    "movementPatterns24h": "Movement patterns over 24 hours",
+    "events": "events",
+    "peakActivity": "Peak Activity",
+    "totalEvents": "Total Events",
+    "averagePerHour": "Average/Hour"
+  },
+  "heatmap": {
+    "title": "Weekly Occupancy Heatmap",
+    "subtitle": "Activity patterns by day and hour",
+    "activityLevel": "Activity Level",
+    "low": "Low",
+    "high": "High",
+    "mostActive": "Most Active",
+    "leastActive": "Least Active",
+    "averageActivity": "Average Activity",
+    "noActivity": "No activity",
+    "lowActivity": "Low activity",
+    "moderateActivity": "Moderate activity",
+    "highActivity": "High activity",
+    "maxActivity": "Maximum activity"
+  },
+  "days": {
+    "monday": "Monday",
+    "tuesday": "Tuesday",
+    "wednesday": "Wednesday",
+    "thursday": "Thursday",
+    "friday": "Friday",
+    "saturday": "Saturday",
+    "sunday": "Sunday"
+  },
+  "airQuality": {
+    "title": "Air Quality Index",
+    "subtitle": "Real-time environmental monitoring",
+    "score": "AQI Score",
+    "scaleReference": "AQI Scale Reference",
+    "good": "Good",
+    "goodDesc": "Air quality is excellent",
+    "moderate": "Moderate",
+    "moderateDesc": "Acceptable air quality",
+    "bad": "Bad",
+    "badDesc": "Harmful air quality"
+  },
+  "deviceStatus": {
+    "title": "Device Status",
+    "subtitle": "System health and connected devices",
+    "online": "Online",
+    "offline": "Offline",
+    "lastSeen": "Last seen",
+    "rpiController": "Raspberry Pi Controller",
+    "rpiSubtitle": "Central processing unit",
+    "cpuUsage": "CPU Usage",
+    "memoryUsage": "Memory Usage",
+    "temperature": "Temperature",
+    "uptime": "Uptime",
+    "withinLimits": "Within limits",
+    "daysHours": "Days:Hours",
+    "connectedSensors": "Connected Sensors",
+    "sensorsOnline": "{{online}} of {{total}} sensors online",
+    "pirMotionSensor": "PIR Motion Sensor",
+    "magneticDoorSensor": "Magnetic Door Sensor",
+    "airQualitySensor": "Air Quality Sensor",
+    "state": "State",
+    "battery": "Battery",
+    "temp": "Temp",
+    "lastUpdate": "Last update",
+    "allDevices": "Device Status",
+    "devicesOnline": "{{online}} of {{total}} online"
+  }
+}
