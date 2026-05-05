@@ -13,6 +13,7 @@ from ..models import (
     OccupancyHeatmapCell,
 )
 from .alerts import create_and_notify_alert
+from ..services.sensor_filter import data_validation
 
 router = APIRouter()
 
@@ -66,6 +67,31 @@ def _build_heatmap(store: list[dict[str, Any]]) -> list[OccupancyHeatmapCell]:
 
 @router.post("/api/model/infer", response_model=ModelInferenceResponse)
 async def infer_model(payload: ModelInferenceRequest, request: Request):
+    request.app.state.latest_sensor_data = payload.readings
+
+    imidiate_Alert = data_validation(payload.readings)
+
+    if imidiate_Alert:
+        await create_and_notify_alert(
+            AlertCreate(
+                title="Alerta imediato: " + imidiate_Alert,
+                description=(
+                    f"Valor anormal detetado no sensor. "
+                    f"Motivo: {imidiate_Alert}."
+                ),
+                severity="danger",
+            ),
+            request,
+        )
+
+        return ModelInferenceResponse(
+            expected_activity="Anomalia detectada",
+            confidence=0.0,
+            is_anomaly=True,
+            reason=imidiate_Alert,
+            alert_created=True,
+        )
+
     now = datetime.now(timezone.utc)
     hour = int(payload.readings.get("hour", now.hour))
     day = int(payload.readings.get("day_of_week", now.weekday()))

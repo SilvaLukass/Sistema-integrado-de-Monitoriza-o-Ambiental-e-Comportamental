@@ -18,8 +18,13 @@ from .services.telegram_notifier import TelegramNotifier
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = Settings()
-    bot = Bot(token=settings.telegram_bot_token)
-    app.state.telegram = TelegramNotifier(bot=bot, chat_id=settings.telegram_chat_id)
+    if settings.telegram_bot_token and settings.telegram_chat_id:
+        bot = Bot(token=settings.telegram_bot_token)
+        app.state.telegram = TelegramNotifier(bot=bot, chat_id=settings.telegram_chat_id)
+    else:
+        print("Aviso: Bot do Telegram desativado (Faltam credenciais).")
+        app.state.telegram = None # Para não quebrar o resto do código
+
     app.state.alert_store = AlertStore(max_items=500)
     app.state.model_inference_store = deque(maxlen=2000)
     app.state.last_low_confidence_alert_at = None
@@ -57,6 +62,8 @@ class TestNotificationRequest(BaseModel):
 @app.post("/api/notifications/test")
 #request : Request dá acesso à instância da aplicação (request.app)
 async def test_notification(payload: TestNotificationRequest, request: Request):
-    notifier: TelegramNotifier = request.app.state.telegram
+    notifier = request.app.state.telegram
+    if not notifier:
+        return {"sent": False, "error": "Telegram desativado"}
     await notifier.send_text(payload.text)
     return {"sent": True}

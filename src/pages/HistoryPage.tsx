@@ -1,7 +1,6 @@
 import { useTranslation } from 'react-i18next'
 import { AirQualityGauge } from '../components/AirQualityGauge'
 import { OccupancyHeatmap } from '../components/OccupancyHeatmap'
-
 export function HistoryPage() {
   const { t } = useTranslation()
 
@@ -13,7 +12,7 @@ export function HistoryPage() {
       </div>
 
       <div className="grid grid-cols-[3fr_1fr] gap-6">
-        <ActivityTrendsChart />
+        {/* <ActivityTrendsChart /> */}
         <AirQualityGauge score={100} />
       </div>
 
