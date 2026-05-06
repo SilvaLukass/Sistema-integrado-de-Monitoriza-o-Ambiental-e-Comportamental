@@ -1,19 +1,29 @@
-# Ignorar ficheiros de dados pesados
-*.csv
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
 
-# Ignorar modelos de Machine Learning guardados
-*.pkl
-
-# Ignorar pastas geradas automaticamente pelo Python
-__pycache__/
+node_modules
+dist
+dist-ssr
+*.local
+.venv
+backend/.env
+**/__pycache__/
 *.pyc
 
-# Ignorar ambientes virtuais (caso tenhas a pasta venv aí dentro)
-venv/
-env/
-
-# Ignorar o dataset gigante
-new_labeled_data/
-
-# Ignorar as imagens geradas pelos gráficos
-*.png
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+*.pkl

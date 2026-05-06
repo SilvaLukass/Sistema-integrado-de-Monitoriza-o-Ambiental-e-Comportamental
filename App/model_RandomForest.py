@@ -27,6 +27,8 @@ import joblib
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report, accuracy_score, ConfusionMatrixDisplay
+from imblearn.over_sampling import SMOTE
+
 
 from data_processor import DataProcessor
 
@@ -40,7 +42,7 @@ LABEL_MAPPING_PATH = 'rf_label_mapping.pkl'
 
 # Limiar de confiança: se o modelo tiver menos de X% de certeza
 # na sua previsão, consideramos o momento anómalo.
-ANOMALY_CONFIDENCE_THRESHOLD = 0.30   # 30%
+ANOMALY_CONFIDENCE_THRESHOLD = 0.50   # 50%
 
 
 # -----------------------------------------------------------------------
@@ -60,13 +62,8 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
 
     matrix = matrix.copy()
 
-    # Extrair hora e dia do índice temporal para o modelo "aprender o calendário"
-    matrix['hour']        = matrix.index.hour
-    matrix['day_of_week'] = matrix.index.dayofweek
-    # Minuto pode ajudar a distinguir rotinas muito precisas (ex: alarme às 07:30)
-    matrix['minute']      = matrix.index.minute
-
-    feature_cols = [c for c in matrix.columns if c != 'label_encoded']
+    feature_cols = [c for c in matrix.columns if c != 'label_encoded']  #Features são as caracteristicas que passamos ao modelo para 
+                                                                        #depois tentar adivinhar a atividade
     X = matrix[feature_cols]
     y = matrix['label_encoded']
 
@@ -75,11 +72,12 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
 
     # Distribuição das classes — importante verificar se há desequilíbrio
     print("\n  Distribuição de atividades:")
-    inv_mapping = {v: k for k, v in label_mapping.items()}
+    inv_mapping = {v: k for k, v in label_mapping.items()}  #Invertemos o id da label pelo nome para ser legível durante o debug
     counts = y.value_counts().sort_index()
     for label_num, count in counts.items():
         nome = inv_mapping.get(label_num, f"Label_{label_num}")
-        pct  = 100 * count / len(y)
+        pct  = 100 * count / len(y)                                 #Aqui convertemos a quantidade de valores em percentagem, verificamos
+                                                                    #se há um desiquilibrio grande de dados.
         print(f"    {nome:<25} {count:>6,} amostras  ({pct:.1f}%)")
 
 
@@ -89,9 +87,17 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, random_state=42, shuffle=False
     )
-    print(f"  Treino : {len(X_train):,} minutos  (primeiros 80% do histórico)")
-    print(f"  Teste  : {len(X_test):,} minutos  (últimos 20% do histórico)")
+    # print(f"  Treino : {len(X_train):,} minutos  (primeiros 80% do histórico)")
+    # print(f"  Teste  : {len(X_test):,} minutos  (últimos 20% do histórico)")
 
+    smote = SMOTE(random_state=42, k_neighbors=3) 
+    
+    print(f"A equilibrar balança... (Treino inicial: {X_train.shape[0]} amostras)")
+    
+    # O SMOTE vai criar "gémeos" sintéticos das atividades raras até todas terem o mesmo peso
+    X_train_resampled, y_train_resampled = smote.fit_resample(X_train, y_train)
+    
+    print(f"Treino após SMOTE: {X_train_resampled.shape[0]} amostras sintéticas equilibradas")
 
     print("\n=== Passo 3: Treinar RandomForest ===")
 
@@ -101,12 +107,11 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
         min_samples_leaf=5,       # cada folha precisa de pelo menos 5 amostras
         class_weight='balanced',  # compensa atividades raras (ex: 'Bathing')
         random_state=42,
-        n_jobs=-1
+        n_jobs=-1                 # Utilizamos todos os núcleos da CPU para processar os dados mais rápido
     )
 
-    rf_model.fit(X_train, y_train)
+    rf_model.fit(X_train_resampled, y_train_resampled)
     print("  Treino concluído!")
-
 
     print("\n=== Passo 4: Avaliar ===")
 
@@ -222,7 +227,7 @@ def plot_results(rf_model, feature_cols, X_test, y_test, y_pred,
 # -----------------------------------------------------------------------
 if __name__ == "__main__":
 
-    processor = DataProcessor()
+    processor = DataProcessor('aruba.txt')
     matrix    = processor.get_matrix_for_model()
 
     if matrix.empty:
