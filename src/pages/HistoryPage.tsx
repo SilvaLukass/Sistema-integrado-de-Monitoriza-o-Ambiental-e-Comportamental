@@ -29,7 +29,7 @@ export function HistoryPage() {
 
       <div className="grid grid-cols-[3fr_1fr] gap-6">
         <ActivityTrendsChart />
-        <AirQualityGauge score={airQualityScore} />
+        <AirQualityGauge score={airQualityScore} simulated />
       </div>
 
       <OccupancyHeatmap />

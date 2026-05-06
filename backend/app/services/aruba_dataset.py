@@ -7,9 +7,11 @@ from typing import Any
 import pandas as pd
 
 from ..models import OccupancyHeatmapCell
+from .co2_model import BASELINE_PPM, co2_step
 
 MOTION_PREFIX = "M"
 TEMPERATURE_PREFIX = "T"
+DOOR_PREFIX = "D"
 
 
 def _parse_aruba_file(path: Path) -> pd.DataFrame:
@@ -53,18 +55,47 @@ def aruba_sensor_history(project_root: str) -> list[dict[str, Any]]:
 
     temp = df[df["sensor"].str.startswith(TEMPERATURE_PREFIX, na=False)].copy()
     temp_by_hour = temp.groupby("hour")["numeric_value"].mean()
-
-    # Aruba has no CO2/air-quality sensor, so CO2 must be absent rather than
-    # filled with fake data. The frontend can then explain that honestly.
+    co2_curve = aruba_co2_curve(project_root)
     return [
         {
             "time": f"{hour:02d}:00",
             "movement": int(round((float(motion_counts.get(hour, 0)) / max_motion) * 100)),
             "tempHum": int(round(float(temp_by_hour.get(hour, 0)))) if hour in temp_by_hour else 0,
-            "co2": None,
+            "co2": int(round(co2_curve[hour])),
         }
         for hour in range(24)
     ]
+
+
+def aruba_co2_curve(project_root: str) -> list[float]:
+    """Build a 24-hour synthetic CO2 curve from Aruba behavior signals.
+
+    Aruba has no direct CO2 sensor, so we derive a plausible indoor signal from:
+    - motion intensity per hour (occupancy proxy)
+    - door events per hour (ventilation proxy)
+    """
+    df = load_aruba_dataset(project_root)
+
+    motion = df[df["sensor"].str.startswith(MOTION_PREFIX, na=False)].copy()
+    motion_on = motion[motion["numeric_value"] > 0]
+    motion_counts = motion_on.groupby("hour").size()
+    max_motion = float(motion_counts.max()) if not motion_counts.empty else 1.0
+
+    doors = df[df["sensor"].str.startswith(DOOR_PREFIX, na=False)].copy()
+    door_events = doors.groupby("hour").size()
+
+    curve: list[float] = []
+    co2_ppm = BASELINE_PPM
+    for hour in range(24):
+        motion_score = float(motion_counts.get(hour, 0.0)) / max_motion
+        door_event = float(door_events.get(hour, 0.0)) > 0
+        # Night ventilation gives smoother overnight recovery to baseline.
+        if hour >= 23 or hour <= 6:
+            door_event = True
+        co2_ppm = co2_step(co2_ppm, motion_score=motion_score, door_event=door_event, dt_minutes=60.0, add_noise=False)
+        curve.append(co2_ppm)
+
+    return curve
 
 
 def aruba_occupancy_heatmap(project_root: str) -> list[OccupancyHeatmapCell]:

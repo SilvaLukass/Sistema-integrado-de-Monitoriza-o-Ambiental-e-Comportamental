@@ -53,6 +53,18 @@ export function ActivityTrendsChart() {
   const co2DataKey = isOverview ? 'co2Index' : 'co2'
   const tempDataKey = isOverview ? 'tempIndex' : 'tempHum'
   const co2ReferenceLines = isOverview ? [33, 67] : [800, 1200]
+  const metricOptions: Array<{
+    key: 'all' | 'co2' | 'temp' | 'activity'
+    label: string
+    color: string
+    icon?: 'activity' | 'flame'
+  }> = [
+    { key: 'all', label: t('history.overview', 'Visão Geral'), color: 'text-[#101828]' },
+    { key: 'co2', label: t('sensors.gas', 'Gás / CO2'), color: 'text-[#ef4444]', icon: 'flame' },
+    { key: 'temp', label: t('sensors.temperature', 'Temperatura'), color: 'text-[#f59e0b]', icon: 'activity' },
+    { key: 'activity', label: t('history.routineActivity', 'Atividade (Rotina)'), color: 'text-[#3b82f6]', icon: 'activity' },
+  ]
+  const activeMetricIndex = metricOptions.findIndex((option) => option.key === activeMetric)
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm p-6 flex flex-col gap-6">
@@ -66,45 +78,34 @@ export function ActivityTrendsChart() {
           </p>
         </div>
 
-        <div className="flex bg-[#f3f4f6] rounded-lg p-1">
-          <button
-            onClick={() => setActiveMetric('all')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all ${
-              activeMetric === 'all' ? 'bg-white shadow-sm text-[#101828]' : 'text-[#6a7282]'
-            }`}
-          >
-            {t('history.overview', 'Visão Geral')}
-          </button>
-          <button
-            onClick={() => setActiveMetric('co2')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${
-              activeMetric === 'co2' ? 'bg-white shadow-sm text-[#ef4444]' : 'text-[#6a7282]'
-            }`}
-          >
-            <Flame size={14} /> {t('sensors.gas', 'Gás / CO2')}
-          </button>
-          <button
-            onClick={() => setActiveMetric('temp')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${
-              activeMetric === 'temp' ? 'bg-white shadow-sm text-[#ef4444]' : 'text-[#6a7282]'
-            }`}
-          >
-            <Activity size={14} /> {t('sensors.temperature', 'Temperatura')}
-          </button>
-          <button
-            onClick={() => setActiveMetric('activity')}
-            className={`px-3 py-1.5 text-xs font-medium rounded-md transition-all flex items-center gap-1 ${
-              activeMetric === 'activity' ? 'bg-white shadow-sm text-[#ef4444]' : 'text-[#6a7282]'
-            }`}
-          >
-            <Activity size={14} /> {t('history.routineActivity', 'Atividade (Rotina)')}
-          </button>
+        <div className="relative grid grid-cols-4 rounded-xl bg-[#f3f4f6] p-1 overflow-hidden">
+          <span
+            className="absolute inset-y-1 left-1 w-[calc(25%-0.25rem)] rounded-lg bg-white shadow-sm transition-transform duration-400 ease-out"
+            style={{ transform: `translateX(${Math.max(activeMetricIndex, 0) * 100}%)` }}
+          />
+          {metricOptions.map((option) => {
+            const isActive = activeMetric === option.key
+            return (
+              <button
+                key={option.key}
+                onClick={() => setActiveMetric(option.key)}
+                className={`relative z-10 px-3 py-1.5 text-xs font-medium rounded-lg transition-all duration-300 ease-out flex items-center justify-center gap-1 ${
+                  isActive ? `${option.color} scale-[1.02]` : 'text-[#6a7282] hover:text-[#4a5565]'
+                }`}
+              >
+                {option.icon === 'flame' ? <Flame size={14} /> : null}
+                {option.icon === 'activity' ? <Activity size={14} /> : null}
+                <span>{option.label}</span>
+              </button>
+            )
+          })}
         </div>
       </div>
 
       <div className="flex min-h-8 flex-wrap items-center justify-end gap-2 text-xs font-semibold -mb-3">
         {showCO2Thresholds ? (
           <>
+            <span className="rounded-full bg-violet-50 px-2 py-1 text-violet-700">CO2 simulado</span>
             {isOverview && <span className="rounded-full bg-slate-50 px-2 py-1 text-slate-600">{t('history.relativeIndex', 'Indice relativo 0-100')}</span>}
             <span className="rounded-full bg-emerald-50 px-2 py-1 text-emerald-700">{t('airQuality.good', 'Bom')} ≤ 800 ppm</span>
             <span className="rounded-full bg-amber-50 px-2 py-1 text-amber-700">
@@ -114,11 +115,11 @@ export function ActivityTrendsChart() {
           </>
         ) : activeMetric === 'all' ? (
           <span className="rounded-full bg-slate-50 px-2 py-1 text-slate-600">
-            {t('history.relativeIndex', 'Indice relativo 0-100')} · Aruba sem CO2
+            {t('history.relativeIndex', 'Indice relativo 0-100')}
           </span>
         ) : activeMetric === 'co2' ? (
           <span className="rounded-full bg-slate-50 px-2 py-1 text-slate-600">
-            Dataset Aruba nao contem sensor CO2
+            CO2 simulado
           </span>
         ) : (
           <span className="rounded-full bg-slate-50 px-2 py-1 text-slate-600">

@@ -6,9 +6,18 @@ import random
 from datetime import datetime
 
 from ..routers.model import process_model_readings
+from .co2_model import BASELINE_PPM, co2_step
+
+SIMULATOR_START_CO2_PPM = 600.0
 
 
-def build_simulated_readings(now: datetime | None = None) -> dict[str, float]:
+def _motion_score_from_readings(readings: dict[str, float]) -> float:
+    motion_sensors = ["M001", "M003", "M004", "M018"]
+    active = sum(1.0 for sensor in motion_sensors if float(readings.get(sensor, 0.0)) > 0.0)
+    return active / float(len(motion_sensors))
+
+
+def build_simulated_readings(now: datetime | None = None, co2_ppm: float | None = None) -> dict[str, float]:
     """Generate one realistic reading snapshot for local development.
 
     Later, the Raspberry Pi will send this same payload shape to
@@ -34,11 +43,8 @@ def build_simulated_readings(now: datetime | None = None) -> dict[str, float]:
         movement_base = 0.75
 
     temp = 22 + math.sin((hour - 6) * (math.pi / 12)) * 3 + random.uniform(-0.6, 0.6)
-    co2 = 430 + random.uniform(-35, 45)
-    if hour in {13, 14}:
-        co2 = 850 + random.uniform(0, 250)
-    if hour in {19, 20}:
-        co2 = 1250 + random.uniform(0, 300)
+    if co2_ppm is None:
+        co2_ppm = BASELINE_PPM
 
     return {
         "hour": float(hour),
@@ -50,13 +56,29 @@ def build_simulated_readings(now: datetime | None = None) -> dict[str, float]:
         "M018": 1.0 if (morning or evening) and random.random() < 0.45 else 0.0,
         "D001": 1.0 if random.random() < 0.02 else 0.0,
         "T001": round(temp, 1),
-        "CO2": round(co2),
+        "CO2": round(co2_ppm),
     }
 
 
 async def simulator_loop(app, interval_seconds: int) -> None:
+    if not hasattr(app.state, "simulator_state"):
+        # Start slightly above outdoor baseline to better match typical indoor air.
+        app.state.simulator_state = {"co2_ppm": SIMULATOR_START_CO2_PPM}
+
     while True:
-        readings = build_simulated_readings()
+        previous_co2 = float(app.state.simulator_state.get("co2_ppm", BASELINE_PPM))
+        readings = build_simulated_readings(co2_ppm=previous_co2)
+        motion_score = _motion_score_from_readings(readings)
+        door_event = float(readings.get("D001", 0.0)) > 0.0
+        next_co2 = co2_step(
+            prev_ppm=previous_co2,
+            motion_score=motion_score,
+            door_event=door_event,
+            dt_minutes=max(interval_seconds / 60.0, 0.0),
+            add_noise=True,
+        )
+        readings["CO2"] = round(next_co2)
+        app.state.simulator_state["co2_ppm"] = next_co2
         app.state.db.add_sensor_reading(readings, source="simulator")
         try:
             await process_model_readings(app, readings)

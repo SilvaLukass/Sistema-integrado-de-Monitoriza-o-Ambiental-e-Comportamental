@@ -2,7 +2,8 @@ import { useTranslation } from 'react-i18next'
 import { Wind } from 'lucide-react'
 
 interface AirQualityGaugeProps {
-  score: number  
+  score: number
+  simulated?: boolean
 }
 
 //construção da circunferência
@@ -17,7 +18,7 @@ function scoreToOffset(score: number): number {
 }
 
 
-export function AirQualityGauge({ score }: AirQualityGaugeProps) {
+export function AirQualityGauge({ score, simulated = false }: AirQualityGaugeProps) {
   const { t } = useTranslation()
 
   //niveis do IQA, cores e descrição
@@ -47,7 +48,10 @@ export function AirQualityGauge({ score }: AirQualityGaugeProps) {
           <Wind size={20} className="text-[#10b981]" />
         </div>
         <div>
-          <p className="font-semibold text-lg text-[#101828]">{t('airQuality.title')}</p>
+          <div className="flex items-center gap-2">
+            <p className="font-semibold text-lg text-[#101828]">{t('airQuality.title')}</p>
+            {simulated && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-xs font-semibold text-violet-700">Simulado</span>}
+          </div>
           <p className="text-sm text-[#6a7282]">{t('airQuality.subtitle')}</p>
         </div>
       </div>

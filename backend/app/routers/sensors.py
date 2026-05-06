@@ -10,19 +10,11 @@ from ..models import (
     SensorIngestRequest,
 )
 from ..services.aruba_dataset import aruba_sensor_history
+from ..services.co2_model import co2_status
 from ..services.db import MOTION_SENSOR_ROOMS
 from .model import process_model_readings
 
 router = APIRouter()
-
-
-def _co2_status(co2: float) -> str:
-    if co2 <= 800:
-        return "Bom"
-    if co2 <= 1200:
-        return "Moderado"
-    return "Mau"
-
 
 def _last_activity_room(readings: dict[str, float]) -> str | None:
     for sensor_id, room in MOTION_SENSOR_ROOMS.items():
@@ -57,7 +49,7 @@ async def latest_sensor_reading(request: Request):
         timestamp=timestamp,
         readings=readings,
         co2=co2,
-        co2_status=_co2_status(co2),
+        co2_status=co2_status(co2),
         temperature=temperature,
         last_activity_room=_last_activity_room(readings),
     )

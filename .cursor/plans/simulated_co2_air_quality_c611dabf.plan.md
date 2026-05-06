@@ -4,25 +4,24 @@ overview: "Add CO2 / air-quality data to the system in two coordinated places: a
 todos:
   - id: co2-model
     content: Add backend/app/services/co2_model.py with co2_step and co2_status helpers.
-    status: pending
+    status: completed
   - id: aruba-co2-curve
     content: Extend aruba_dataset.py with an Aruba-derived 24h CO2 curve and use it in /api/sensors/history.
-    status: pending
+    status: completed
   - id: live-co2
     content: Make the simulator advance CO2 with co2_step instead of random values, persist in app state.
-    status: pending
+    status: completed
   - id: share-thresholds
     content: Replace duplicated CO2 status logic in routers with the shared co2_status helper.
-    status: pending
+    status: completed
   - id: frontend-co2-honest
     content: Restore CO2 visuals in ActivityTrendsChart and AirQualityGauge with a clear Simulado label.
-    status: pending
+    status: completed
   - id: co2-docs
     content: Document the CO2 synthesis decision in DECISOES_LOCAIS.md (Portuguese).
-    status: pending
+    status: completed
 isProject: false
 ---
-
 
 # Simulated CO2 Air Quality
 
@@ -80,6 +79,8 @@ flowchart LR
     api --> overview
 ```
 
+
+
 Two distinct data flows:
 
 - Historical CO2 is computed from Aruba aggregates (no DB writes, just an aggregation function).
@@ -92,7 +93,7 @@ Two distinct data flows:
 - New file [backend/app/services/co2_model.py](backend/app/services/co2_model.py).
 - Pure functions, no FastAPI here, easy to unit-test and easy to read.
 - Two functions:
-  - `co2_step(prev_ppm, motion_score, door_event, dt_minutes) -> float`
+  - `co2_step(prev_ppm, motion_score, door_event, dt_minutes) -> floats`
     - Discrete step model, e.g.:
       - `production = base_production * motion_score`
       - `decay = (prev_ppm - baseline) * decay_rate * dt_minutes`
@@ -169,3 +170,4 @@ Why these defaults: with ~24 hours of stepping, peaks land around 900-1300 ppm d
 
 - No model retraining: the RandomForest still works on Aruba routine features only.
 - No Raspberry Pi wiring: when it arrives, only the live CO2 source is replaced; the rest stays unchanged.
+
