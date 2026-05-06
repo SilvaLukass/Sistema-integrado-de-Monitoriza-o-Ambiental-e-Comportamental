@@ -16,7 +16,7 @@ export function HistoryPage() {
         <AirQualityGauge score={100} />
       </div>
 
-    <OccupancyHeatmap/>
+      <OccupancyHeatmap />
 
     </div>
   )

@@ -42,7 +42,7 @@ LABEL_MAPPING_PATH = 'rf_label_mapping.pkl'
 
 # Limiar de confiança: se o modelo tiver menos de X% de certeza
 # na sua previsão, consideramos o momento anómalo.
-ANOMALY_CONFIDENCE_THRESHOLD = 0.30   # 30%
+ANOMALY_CONFIDENCE_THRESHOLD = 0.50   # 50%
 
 
 # -----------------------------------------------------------------------
@@ -62,7 +62,8 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
 
     matrix = matrix.copy()
 
-    feature_cols = [c for c in matrix.columns if c != 'label_encoded']
+    feature_cols = [c for c in matrix.columns if c != 'label_encoded']  #Features são as caracteristicas que passamos ao modelo para 
+                                                                        #depois tentar adivinhar a atividade
     X = matrix[feature_cols]
     y = matrix['label_encoded']
 
@@ -71,11 +72,12 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
 
     # Distribuição das classes — importante verificar se há desequilíbrio
     print("\n  Distribuição de atividades:")
-    inv_mapping = {v: k for k, v in label_mapping.items()}
+    inv_mapping = {v: k for k, v in label_mapping.items()}  #Invertemos o id da label pelo nome para ser legível durante o debug
     counts = y.value_counts().sort_index()
     for label_num, count in counts.items():
         nome = inv_mapping.get(label_num, f"Label_{label_num}")
-        pct  = 100 * count / len(y)
+        pct  = 100 * count / len(y)                                 #Aqui convertemos a quantidade de valores em percentagem, verificamos
+                                                                    #se há um desiquilibrio grande de dados.
         print(f"    {nome:<25} {count:>6,} amostras  ({pct:.1f}%)")
 
 
@@ -85,8 +87,8 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.20, random_state=42, shuffle=False
     )
-    print(f"  Treino : {len(X_train):,} minutos  (primeiros 80% do histórico)")
-    print(f"  Teste  : {len(X_test):,} minutos  (últimos 20% do histórico)")
+    # print(f"  Treino : {len(X_train):,} minutos  (primeiros 80% do histórico)")
+    # print(f"  Teste  : {len(X_test):,} minutos  (últimos 20% do histórico)")
 
     smote = SMOTE(random_state=42, k_neighbors=3) 
     
@@ -105,7 +107,7 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
         min_samples_leaf=5,       # cada folha precisa de pelo menos 5 amostras
         class_weight='balanced',  # compensa atividades raras (ex: 'Bathing')
         random_state=42,
-        n_jobs=-1
+        n_jobs=-1                 # Utilizamos todos os núcleos da CPU para processar os dados mais rápido
     )
 
     rf_model.fit(X_train_resampled, y_train_resampled)

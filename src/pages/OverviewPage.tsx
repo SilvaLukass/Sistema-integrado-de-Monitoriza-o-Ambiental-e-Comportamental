@@ -56,7 +56,7 @@ function CardHeader({ icon, title, subtitle, iconBg }: {
   )
 }
 
-function SafetyStatusHeader() {
+function SafetyStatusHeader({ isDebugMode, horaManual, m003Manual, co2Manual, m001Manual, m004Manual, m018Manual, d001Manual, t001Manual }: any) {
   const { t } = useTranslation()
   const [aiStatus, setAiStatus] = useState<ModelInferenceResponse | null>(null)
   const [error, setError] = useState<boolean>(false)
@@ -69,15 +69,31 @@ function SafetyStatusHeader() {
   const pandasDayOfWeek = (jsDay + 6) % 7 // 0=segunda ... 6=domingo
 
   // Simular sensores de forma inteligente baseada na hora!
-  const currentSensorData = {
-    "hour": currentHour,
-    "day_of_week": pandasDayOfWeek,
-    "minute": currentMinute,
-    "M003": currentHour >= 23 || currentHour <= 7 ? 1.0 : 0.0, // Movimento na cama de noite
-    "T001": 22.5,
-    // Simulamos o pico de CO2 apenas à hora de jantar (19h ou 20h)
-    "CO2": (currentHour === 19 || currentHour === 20) ? 1600 : 450
-  }
+  const currentSensorData = isDebugMode
+    ? {
+      "hour": horaManual,
+      "day_of_week": pandasDayOfWeek,
+      "minute": 0,
+      "M001": m001Manual, // Sala
+      "M003": m003Manual, // Cama
+      "M004": m004Manual, // Casa de Banho
+      "M018": m018Manual, // Cozinha
+      "D001": d001Manual, // Porta Principal
+      "T001": t001Manual, // Temperatura
+      "CO2": co2Manual    // Qualidade do ar
+    }
+    : { // SE O MODO DEBUG ESTIVER DESLIGADO (Usa o relógio do PC)
+      hour: currentHour,
+      day_of_week: pandasDayOfWeek,
+      minute: currentMinute,
+      M001: 0.0,
+      M003: currentHour >= 23 || currentHour <= 7 ? 1.0 : 0.0,
+      M004: 0.0,
+      M018: 0.0,
+      D001: 0.0,
+      T001: 22.5,
+      CO2: currentHour === 19 || currentHour === 20 ? 1600 : 450,
+    };
 
   useEffect(() => {
     const checkAI = async () => {
@@ -94,7 +110,7 @@ function SafetyStatusHeader() {
     checkAI()
     const interval = setInterval(checkAI, 10000)
     return () => clearInterval(interval)
-  }, [])
+  }, [horaManual, m003Manual, co2Manual, m001Manual, m004Manual, m018Manual, d001Manual, t001Manual])
 
   // 1. Lógica de Anomalia da IA (Comportamento)
   const isRoutineAnomaly = aiStatus?.is_anomaly;
@@ -357,9 +373,8 @@ function DeviceStatusCard() {
                 </div>
               </div>
               {simpleMode ? (
-                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
-                  device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
-                }`}>
+                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
+                  }`}>
                   {device.online ? t('status.online') : t('status.offline')}
                 </span>
               ) : (
@@ -369,9 +384,8 @@ function DeviceStatusCard() {
 
             {!simpleMode && (
               <div className="flex items-center justify-between mt-3">
-                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
-                  device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
-                }`}>
+                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
+                  }`}>
                   {device.online ? t('status.online') : t('status.offline')}
                 </span>
                 <p className="text-xs text-[#6a7282]">{t('common.lastSeenTime', { time: device.lastSeen })}</p>
@@ -388,11 +402,48 @@ function DeviceStatusCard() {
 export function OverviewPage() {
   const { t } = useTranslation()
 
+  const [isDebugMode, setIsDebugMode] = useState(false);
+  const [horaManual, setHoraManual] = useState<number>(14);
+  const [m003Manual, setM003Manual] = useState<number>(1.0);
+  const [co2Manual, setco2Manual] = useState<number>(500.0);
+
+  // Sensores de Movimento (PIR)
+  const [m004Manual, setM004Manual] = useState<number>(0.0); // Casa de Banho
+  const [m018Manual, setM018Manual] = useState<number>(0.0); // Cozinha
+  const [m001Manual, setM001Manual] = useState<number>(0.0); // Sala de Estar
+
+  // Sensores de Porta (Magnéticos)
+  const [d001Manual, setD001Manual] = useState<number>(0.0); // Porta Principal
+
+  // Sensores Ambientais
+  const [t001Manual, setT001Manual] = useState<number>(22.5); // Temperatura
+
   return (
     <div className="flex flex-col gap-6">
       <h1 className="text-2xl font-semibold text-[#101828]">{t('overview.title')}</h1>
 
-      <SafetyStatusHeader />
+      <SafetyStatusHeader
+        isDebugMode={isDebugMode}
+        horaManual={horaManual}
+        m003Manual={m003Manual}
+        co2Manual={co2Manual}
+        d001Manual={d001Manual}
+        m004Manual={m004Manual}
+        m001Manual={m001Manual}
+        m005Manual={m018Manual}
+        t001Manual={t001Manual}
+      />
+      <DebugModeButton
+        isDebugMode={isDebugMode} setIsDebugMode={setIsDebugMode}
+        horaManual={horaManual} setHoraManual={setHoraManual}
+        m003Manual={m003Manual} setM003Manual={setM003Manual}
+        co2Manual={co2Manual} setco2Manual={setco2Manual}
+        d001Manual={d001Manual} setD001Manual={setD001Manual}
+        m004Manual={m004Manual} setM004Manual={setM004Manual}
+        m005Manual={m018Manual} setM005Manual={setM018Manual}
+        m001Manual={m001Manual} setM001Manual={setM001Manual}
+        t001Manual={t001Manual} setT001Manual={setT001Manual}
+      />
 
       <div className="grid grid-cols-2 gap-6">
         <ResidentActivityCard />
@@ -403,6 +454,93 @@ export function OverviewPage() {
         <RecentAlertsCard />
         <DeviceStatusCard />
       </div>
+    </div>
+  )
+}
+
+export function DebugModeButton({
+  isDebugMode, setIsDebugMode,
+  horaManual, setHoraManual,
+  m003Manual, setM003Manual,
+  co2Manual, setco2Manual,
+  m001Manual, setM001Manual,
+  m004Manual, setM004Manual,
+  m018Manual, setM018Manual,
+  d001Manual, setD001Manual,
+  t001Manual, setT001Manual,
+}: any) {
+  return (
+    <div className="flex flex-col gap-4 p-4">
+      <button
+        onClick={() => setIsDebugMode(!isDebugMode)}
+        className="w-max bg-gray-800 text-white px-4 py-2 rounded-[14px] text-sm font-medium hover:bg-gray-700 transition-colors"
+      >
+        {isDebugMode ? 'Fechar Painel de Debug' : '🔧 Abrir Modo Debug'}
+      </button>
+
+      {isDebugMode && (
+        <div className="bg-[#f8fafc] border border-gray-200 rounded-[14px] p-6 shadow-sm">
+          <p className="font-semibold text-[#101828] mb-4">Painel de Controlo Manual (Testes IA)</p>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Hora do Dia</label>
+              <input type="number" value={horaManual}
+                onChange={(e) => setHoraManual(Number(e.target.value))}
+                className="border p-2 rounded-[10px] w-full" />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Sensor M001 (Sala)</label>
+              <input type="number" value={m001Manual}
+                onChange={(e) => setM001Manual(Number(e.target.value))}
+                className="border p-2 rounded-[10px] w-full" />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Sensor M003 (Cama)</label>
+              <input type="number" value={m003Manual}
+                onChange={(e) => setM003Manual(Number(e.target.value))}
+                className="border p-2 rounded-[10px] w-full" />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Sensor M004 (Casa de Banho)</label>
+              <input type="number" value={m004Manual}
+                onChange={(e) => setM004Manual(Number(e.target.value))}
+                className="border p-2 rounded-[10px] w-full" />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Sensor M018 (Cozinha)</label>
+              <input type="number" value={m018Manual}
+                onChange={(e) => setM018Manual(Number(e.target.value))}
+                className="border p-2 rounded-[10px] w-full" />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Sensor D001 (Porta Principal)</label>
+              <input type="number" value={d001Manual}
+                onChange={(e) => setD001Manual(Number(e.target.value))}
+                className="border p-2 rounded-[10px] w-full" />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Sensor T001 (Temperatura)</label>
+              <input type="number" value={t001Manual}
+                onChange={(e) => setT001Manual(Number(e.target.value))}
+                className="border p-2 rounded-[10px] w-full" />
+            </div>
+
+            <div>
+              <label className="block text-sm text-gray-600 mb-1">Sensor CO2</label>
+              <input type="number" value={co2Manual}
+                onChange={(e) => setco2Manual(Number(e.target.value))}
+                className="border p-2 rounded-[10px] w-full" />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
