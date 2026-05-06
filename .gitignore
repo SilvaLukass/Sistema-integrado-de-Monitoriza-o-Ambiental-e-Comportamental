@@ -12,7 +12,10 @@ dist
 dist-ssr
 *.local
 .venv
+.venv-ml/
+App/.venv-ml/
 backend/.env
+backend/data/*.sqlite
 **/__pycache__/
 *.pyc
 

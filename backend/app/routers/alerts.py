@@ -52,7 +52,7 @@ async def list_alerts(request: Request):
     return store.list()
 
 
-async def create_and_notify_alert(payload: AlertCreate, request: Request) -> AlertCreateResult:
+def create_alert_record(payload: AlertCreate, app) -> Alert:
     alert = Alert(
         id=str(uuid4()),
         title=payload.title,
@@ -62,10 +62,16 @@ async def create_and_notify_alert(payload: AlertCreate, request: Request) -> Ale
         resolved=False,
     )
 
-    store: AlertStore = request.app.state.alert_store
+    store: AlertStore = app.state.alert_store
     store.add(alert)
+    return alert
 
-    notifier: TelegramNotifier = request.app.state.telegram
+
+async def notify_alert(alert: Alert, app) -> tuple[bool, str | None]:
+    notifier: TelegramNotifier | None = app.state.telegram
+    if notifier is None:
+        return False, "Telegram desativado"
+
     relative = _format_ptpt_relative(alert.timestamp)
     try:
         await notifier.send_text(
@@ -73,13 +79,19 @@ async def create_and_notify_alert(payload: AlertCreate, request: Request) -> Ale
             f"{alert.description}\n"
             f"({relative})"
         )
-        return AlertCreateResult(alert=alert, notification_sent=True)
+        return True, None
     except Exception as exc:
-        return AlertCreateResult(
-            alert=alert,
-            notification_sent=False,
-            notification_error=str(exc),
-        )
+        return False, str(exc)
+
+
+async def create_and_notify_alert_from_app(payload: AlertCreate, app) -> AlertCreateResult:
+    alert = create_alert_record(payload, app)
+    sent, error = await notify_alert(alert, app)
+    return AlertCreateResult(alert=alert, notification_sent=sent, notification_error=error)
+
+
+async def create_and_notify_alert(payload: AlertCreate, request: Request) -> AlertCreateResult:
+    return await create_and_notify_alert_from_app(payload, request.app)
 
 
 @router.post("/api/alerts", response_model=AlertCreateResult)

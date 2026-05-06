@@ -1,42 +1,47 @@
 import { useTranslation } from 'react-i18next'
-import { Cpu, Wifi, Wind, DoorOpen, Activity, BatteryMedium } from 'lucide-react'
+import { useQuery } from '@tanstack/react-query'
+import { Activity, BatteryMedium, Cpu, DoorOpen, Wifi, Wind } from 'lucide-react'
+import { getDevices, getSystemMetrics, type DeviceStatus } from '../api/backend'
 import { useAppStore } from '../store/appStore'
 
-interface RpiMetric {
-  label: string
-  value: string
-  subtitle?: string
-  percentage?: number
+function formatDuration(seconds: number) {
+  const days = Math.floor(seconds / 86_400)
+  const hours = Math.floor((seconds % 86_400) / 3600)
+  return days > 0 ? `${days}d ${hours}h` : `${hours}h`
 }
 
-interface SensorCard {
-  id: string
-  name: string
-  model: string
-  icon: React.ReactNode
-  online: boolean
-  metrics: { label: string; value: string }[]
-  lastUpdated: string
+function formatLastSeen(lastSeen: string | null) {
+  if (!lastSeen) return 'sem dados'
+  const minutes = Math.max(0, Math.round((Date.now() - new Date(lastSeen).getTime()) / 60_000))
+  if (minutes < 1) return 'agora mesmo'
+  return `há ${minutes} min`
 }
 
-interface DeviceRow {
-  id: string
-  name: string
-  room: string
-  online: boolean
-  battery: number
-  lastSeen: string
+function iconForDevice(device: DeviceStatus) {
+  if (device.type === 'door') return <DoorOpen size={20} className="text-[#10b981]" />
+  if (device.type === 'airQuality' || device.id === 'CO2') return <Wind size={20} className="text-[#10b981]" />
+  return <Activity size={20} className="text-[#10b981]" />
 }
 
 function RaspberryPiCard({ simpleMode }: { simpleMode: boolean }) {
   const { t } = useTranslation()
+  const { data } = useQuery({
+    queryKey: ['system-metrics'],
+    queryFn: getSystemMetrics,
+  })
 
-  const rpiMetrics: RpiMetric[] = [
-    { label: t('deviceStatus.cpuUsage'), value: '34%', percentage: 34 },
-    { label: t('deviceStatus.memoryUsage'), value: '56%', percentage: 56 },
-    { label: t('deviceStatus.temperature'), value: '42°C', subtitle: t('deviceStatus.withinLimits') },
-    { label: t('deviceStatus.uptime'), value: '12:08', subtitle: t('deviceStatus.daysHours') },
-  ]
+  const rpiMetrics = data
+    ? [
+        { label: t('deviceStatus.cpuUsage'), value: `${Math.round(data.cpu_usage)}%`, percentage: Math.round(data.cpu_usage) },
+        { label: t('deviceStatus.memoryUsage'), value: `${Math.round(data.memory_usage)}%`, percentage: Math.round(data.memory_usage) },
+        {
+          label: t('deviceStatus.temperature'),
+          value: data.temperature === null ? 'N/D' : `${Math.round(data.temperature)}°C`,
+          subtitle: data.temperature === null ? 'Sensor não disponível neste host' : t('deviceStatus.withinLimits'),
+        },
+        { label: t('deviceStatus.uptime'), value: formatDuration(data.uptime_seconds), subtitle: t('deviceStatus.daysHours') },
+      ]
+    : []
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm p-6 flex flex-col gap-6">
@@ -47,7 +52,9 @@ function RaspberryPiCard({ simpleMode }: { simpleMode: boolean }) {
           </div>
           <div>
             <p className="font-semibold text-lg text-[#101828]">{t('deviceStatus.rpiController')}</p>
-            <p className="text-sm text-[#6a7282]">{t('deviceStatus.rpiSubtitle')}</p>
+            <p className="text-sm text-[#6a7282]">
+              {t('deviceStatus.rpiSubtitle')} · {data?.source ?? 'a aguardar backend'}
+            </p>
           </div>
         </div>
         <span className="bg-[#f0fdf4] text-[#10b981] font-semibold text-base px-4 py-2 rounded-[14px]">
@@ -80,61 +87,22 @@ function RaspberryPiCard({ simpleMode }: { simpleMode: boolean }) {
   )
 }
 
-function ConnectedSensorsCard({ simpleMode }: { simpleMode: boolean }) {
+function ConnectedSensorsCard({ simpleMode, devices }: { simpleMode: boolean; devices: DeviceStatus[] }) {
   const { t } = useTranslation()
-
-  const sensorCards: SensorCard[] = [
-    {
-      id: '1',
-      name: t('deviceStatus.pirMotionSensor'),
-      model: 'HC-SR501',
-      icon: <Activity size={20} className="text-[#10b981]" />,
-      online: true,
-      metrics: [
-        { label: t('deviceStatus.state'), value: t('status.online') },
-        { label: t('deviceStatus.battery'), value: '87%' },
-      ],
-      lastUpdated: t('common.minutesAgo', { count: 2 }),
-    },
-    {
-      id: '2',
-      name: t('deviceStatus.magneticDoorSensor'),
-      model: 'Reed Switch',
-      icon: <DoorOpen size={20} className="text-[#10b981]" />,
-      online: true,
-      metrics: [
-        { label: t('deviceStatus.state'), value: t('status.online') },
-        { label: t('deviceStatus.battery'), value: '92%' },
-      ],
-      lastUpdated: t('common.minutesAgo', { count: 1 }),
-    },
-    {
-      id: '3',
-      name: t('deviceStatus.airQualitySensor'),
-      model: 'Grove Air Quality',
-      icon: <Wind size={20} className="text-[#10b981]" />,
-      online: true,
-      metrics: [
-        { label: t('deviceStatus.state'), value: t('status.online') },
-        { label: t('deviceStatus.temp'), value: '22°C' },
-      ],
-      lastUpdated: t('common.justNow'),
-    },
-  ]
-
-  const onlineCount = sensorCards.filter((sensor) => sensor.online).length
+  const visibleDevices = devices.slice(0, 3)
+  const onlineCount = devices.filter((sensor) => sensor.online).length
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm p-6 flex flex-col gap-6">
       <div>
         <p className="font-semibold text-lg text-[#101828]">{t('deviceStatus.connectedSensors')}</p>
         <p className="text-sm text-[#6a7282] mt-1">
-          {t('deviceStatus.sensorsOnline', { online: onlineCount, total: sensorCards.length })}
+          {t('deviceStatus.sensorsOnline', { online: onlineCount, total: devices.length })}
         </p>
       </div>
 
       <div className={simpleMode ? 'flex flex-col gap-3' : 'grid grid-cols-3 gap-4'}>
-        {sensorCards.map((sensor) => (
+        {visibleDevices.map((sensor) => (
           <div
             key={sensor.id}
             className={
@@ -145,11 +113,11 @@ function ConnectedSensorsCard({ simpleMode }: { simpleMode: boolean }) {
           >
             <div className={simpleMode ? 'flex items-center gap-3' : 'flex items-start gap-3'}>
               <div className={`${simpleMode ? 'size-8' : 'size-10'} bg-[#f0fdf4] rounded-[14px] flex items-center justify-center shrink-0`}>
-                {sensor.icon}
+                {iconForDevice(sensor)}
               </div>
               <div>
                 <p className="font-semibold text-base text-[#101828] leading-tight">{sensor.name}</p>
-                {!simpleMode && <p className="text-xs text-[#6a7282] mt-1">{sensor.model}</p>}
+                {!simpleMode && <p className="text-xs text-[#6a7282] mt-1">{sensor.type}</p>}
               </div>
             </div>
 
@@ -159,18 +127,20 @@ function ConnectedSensorsCard({ simpleMode }: { simpleMode: boolean }) {
               </span>
             ) : (
               <div className="flex flex-col gap-3">
-                {sensor.metrics.map((metric) => (
-                  <div key={metric.label} className="flex items-center justify-between">
-                    <p className="text-sm text-[#4a5565]">{metric.label}</p>
-                    <p className={`text-sm font-semibold ${metric.label === t('deviceStatus.state') ? 'text-[#10b981]' : 'text-[#101828]'}`}>
-                      {metric.value}
-                    </p>
-                  </div>
-                ))}
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-[#4a5565]">{t('deviceStatus.state')}</p>
+                  <p className={`text-sm font-semibold ${sensor.online ? 'text-[#10b981]' : 'text-[#6a7282]'}`}>
+                    {sensor.online ? t('status.online') : t('status.offline')}
+                  </p>
+                </div>
+                <div className="flex items-center justify-between">
+                  <p className="text-sm text-[#4a5565]">{t('deviceStatus.battery')}</p>
+                  <p className="text-sm font-semibold text-[#101828]">{sensor.battery}%</p>
+                </div>
 
                 <div className="border-t border-[#e5e7eb] pt-3 flex items-center justify-between">
                   <p className="text-xs text-[#6a7282]">{t('deviceStatus.lastUpdate')}</p>
-                  <p className="text-xs font-medium text-[#364153]">{sensor.lastUpdated}</p>
+                  <p className="text-xs font-medium text-[#364153]">{formatLastSeen(sensor.last_seen)}</p>
                 </div>
               </div>
             )}
@@ -181,18 +151,9 @@ function ConnectedSensorsCard({ simpleMode }: { simpleMode: boolean }) {
   )
 }
 
-function AllDevicesCard({ simpleMode }: { simpleMode: boolean }) {
+function AllDevicesCard({ simpleMode, devices }: { simpleMode: boolean; devices: DeviceStatus[] }) {
   const { t } = useTranslation()
-
-  const deviceRows: DeviceRow[] = [
-    { id: '1', name: `${t('sensors.pir')} - ${t('rooms.livingRoom')}`, room: t('rooms.livingRoom'), online: true, battery: 87, lastSeen: t('common.minutesAgo', { count: 2 }) },
-    { id: '2', name: `${t('sensors.door')} - ${t('rooms.mainDoor')}`, room: t('rooms.mainEntrance'), online: true, battery: 92, lastSeen: t('common.minutesAgo', { count: 5 }) },
-    { id: '3', name: `${t('sensors.pir')} - ${t('rooms.bedroom')}`, room: t('rooms.bedroom'), online: true, battery: 78, lastSeen: t('common.minutesAgo', { count: 1 }) },
-    { id: '4', name: `${t('sensors.airQuality')} - ${t('rooms.livingRoom')}`, room: t('rooms.livingRoom'), online: true, battery: 95, lastSeen: t('common.justNow') },
-    { id: '5', name: `${t('sensors.pir')} - ${t('rooms.kitchen')}`, room: t('rooms.kitchen'), online: false, battery: 64, lastSeen: t('common.minutesAgo', { count: 3 }) },
-  ]
-
-  const onlineCount = deviceRows.filter((device) => device.online).length
+  const onlineCount = devices.filter((device) => device.online).length
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm p-6 flex flex-col gap-6">
@@ -202,12 +163,12 @@ function AllDevicesCard({ simpleMode }: { simpleMode: boolean }) {
         </div>
         <div>
           <p className="font-semibold text-lg text-[#101828]">{t('deviceStatus.allDevices')}</p>
-          <p className="text-sm text-[#6a7282]">{t('deviceStatus.devicesOnline', { online: onlineCount, total: deviceRows.length })}</p>
+          <p className="text-sm text-[#6a7282]">{t('deviceStatus.devicesOnline', { online: onlineCount, total: devices.length })}</p>
         </div>
       </div>
 
       <div className="flex flex-col gap-3">
-        {deviceRows.map((device) => (
+        {devices.map((device) => (
           <div key={device.id} className="border border-[#e5e7eb] rounded-[14px] px-4 py-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
@@ -242,7 +203,7 @@ function AllDevicesCard({ simpleMode }: { simpleMode: boolean }) {
                 }`}>
                   {device.online ? t('status.online') : t('status.offline')}
                 </span>
-                <p className="text-xs text-[#6a7282]">{t('common.lastSeenTime', { time: device.lastSeen })}</p>
+                <p className="text-xs text-[#6a7282]">{t('common.lastSeenTime', { time: formatLastSeen(device.last_seen) })}</p>
               </div>
             )}
           </div>
@@ -255,6 +216,10 @@ function AllDevicesCard({ simpleMode }: { simpleMode: boolean }) {
 export function DeviceStatusPage() {
   const { t } = useTranslation()
   const simpleMode = useAppStore((state) => state.simpleMode)
+  const { data: devices = [] } = useQuery({
+    queryKey: ['devices'],
+    queryFn: getDevices,
+  })
 
   return (
     <div className="flex flex-col gap-6">
@@ -264,8 +229,8 @@ export function DeviceStatusPage() {
       </div>
 
       <RaspberryPiCard simpleMode={simpleMode} />
-      <ConnectedSensorsCard simpleMode={simpleMode} />
-      <AllDevicesCard simpleMode={simpleMode} />
+      <ConnectedSensorsCard simpleMode={simpleMode} devices={devices} />
+      <AllDevicesCard simpleMode={simpleMode} devices={devices} />
     </div>
   )
 }

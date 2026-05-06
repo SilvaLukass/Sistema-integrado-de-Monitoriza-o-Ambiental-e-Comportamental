@@ -5,7 +5,7 @@ import { AlertTriangle, CheckCircle, Info } from 'lucide-react'
 import type { Alert, AlertSeverity } from '../types'
 import { getAlerts } from '../api/backend'
 
-// Mapeia a severidade do alerta para as cores do mockup do Figma
+// Mapeia a severidade do alerta para as cores do design.
 const severityStyles: Record<AlertSeverity, { bg: string; border: string; icon: React.ReactNode }> = {
   warning: {
     bg: 'bg-[#fffbeb]',
