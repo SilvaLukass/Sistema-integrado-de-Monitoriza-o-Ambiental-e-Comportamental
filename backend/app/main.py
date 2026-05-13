@@ -13,6 +13,7 @@ from .routers.devices import router as devices_router
 from .routers.model import router as model_router
 from .routers.sensors import router as sensors_router
 from .routers.system import router as system_router
+from .routers.debug import router as debug_router
 from .services.alert_store import AlertStore
 from .services.db import init_db
 from .services.simulator import start_simulator
@@ -68,6 +69,7 @@ app.include_router(model_router)
 app.include_router(sensors_router)
 app.include_router(devices_router)
 app.include_router(system_router)
+app.include_router(debug_router)
 
 
 @app.get("/health")

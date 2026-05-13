@@ -53,49 +53,43 @@ class SensorData(BaseModel):
     # Ex: {"hour": 23, "day_of_week": 4, "M003": 1.0, "T001": 21.5, ...}
     readings: Dict[str, float]
 
+def predict_activity(readings: dict) -> dict:
+    """Função pura reutilizável — usada pelo endpoint e pelo simulador."""
+    if rf_model is None:
+        raise RuntimeError("Modelo não carregado.")
+
+    input_data = {col: [readings.get(col, 0.0)] for col in feature_cols}
+    df_input = pd.DataFrame(input_data)
+
+    pred_encoded = rf_model.predict(df_input)[0]
+    pred_proba = rf_model.predict_proba(df_input)[0]
+    confianca = float(np.max(pred_proba) * 100)
+    atividade = inv_mapping.get(pred_encoded, "Unknown")
+    is_anomaly = confianca < ANOMALY_CONFIDENCE_THRESHOLD
+
+    sensores_ativos = [c for c in feature_cols if c.startswith('M') and df_input[c][0] > 0.0]
+    motivo = "ao padrão habitual para esta hora do dia e divisão."
+    if "M003" in sensores_ativos and atividade == "Sleeping":
+        motivo = "ao movimento e presença prolongada detetados na zona da cama."
+    elif atividade == "Leave_Home":
+        motivo = "à ausência total de movimento no interior da casa nos últimos minutos."
+    elif sensores_ativos:
+        motivo = f"aos sensores detetados na zona: {sensores_ativos[0]}."
+
+    return {
+        "expected_activity": atividade,
+        "confidence": round(confianca, 3),
+        "is_anomaly": is_anomaly,
+        "message": "Padrão não reconhecido!" if is_anomaly else "Tudo normal.",
+        "reason": motivo,
+    }
+
 # 4. A Ponte Principal (O Endpoint de Previsão)
 @app.post("/api/model/infer")
 def predict_routine(data: SensorData):
     if rf_model is None:
         raise HTTPException(status_code=500, detail="Modelo de IA não está carregado.")
-
     try:
-        # Converter o dicionário do React para um DataFrame de 1 linha
-        # Garantindo que as colunas estão NA MESMA ORDEM do treino (crucial!)
-        input_data = {col: [data.readings.get(col, 0.0)] for col in feature_cols}
-        df_input = pd.DataFrame(input_data)
-
-        # Fazer a previsão e ver a confiança
-        pred_encoded = rf_model.predict(df_input)[0]
-        pred_proba = rf_model.predict_proba(df_input)[0]
-        
-        confianca_maxima = np.max(pred_proba)*100
-        atividade_nome = inv_mapping.get(pred_encoded, "Unknown")
-        
-        # A nossa lógica de anomalia brilhante
-        is_anomaly = bool(confianca_maxima < ANOMALY_CONFIDENCE_THRESHOLD)
-
-        # Descobrir a "Prova" (Qual sensor justificou isto?)
-        # Procuramos os sensores M (Movimento) que estão com valor > 0
-        sensores_ativos = [col for col in feature_cols if col.startswith('M') and df_input[col][0] > 0.0]
-
-        motivo = "ao padrão habitual para esta hora do dia e divisão."
-        if "M003" in sensores_ativos and atividade_nome == "Sleeping":
-            motivo = "ao movimento e presença prolongada detetados na zona da cama."
-        elif atividade_nome == "Leave_Home":
-            motivo = "à ausência total de movimento no interior da casa nos últimos minutos."
-        elif len(sensores_ativos) > 0:
-            motivo = f"aos sensores detetados na zona: {sensores_ativos[0]}."
-
-        # Responder ao React (agora com o motivo)
-        return {
-            "expected_activity": atividade_nome,
-            "confidence": round(float(confianca_maxima), 3),
-            "is_anomaly": is_anomaly,
-            "message": "Padrão não reconhecido!" if is_anomaly else "Tudo normal.",
-            "reason": motivo #
-        }
-
+        return predict_activity(data.readings)
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
-    

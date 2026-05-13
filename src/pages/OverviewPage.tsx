@@ -14,6 +14,7 @@ import {
   type DeviceStatus,
 } from '../api/backend'
 import { useAppStore } from '../store/appStore'
+import { useSimulator } from '../hooks/useSimulator'
 
 function CardHeader({ icon, title, subtitle, iconBg }: {
   icon: React.ReactNode
@@ -374,7 +375,9 @@ function DeviceStatusCard() {
 
 export function DebugModeButton() {
   const queryClient = useQueryClient()
-  const [isOpen, setIsOpen] = useState(false)
+  const [manualOpen, setManualOpen] = useState(false)
+  const [simOpen, setSimOpen] = useState(false)
+  const [horaInicio, setHoraInicio] = useState<number | undefined>(undefined)
   const [isSending, setIsSending] = useState(false)
   const [horaManual, setHoraManual] = useState<number>(14)
   const [m003Manual, setM003Manual] = useState<number>(1)
@@ -384,6 +387,7 @@ export function DebugModeButton() {
   const [m001Manual, setM001Manual] = useState<number>(0)
   const [d001Manual, setD001Manual] = useState<number>(0)
   const [t001Manual, setT001Manual] = useState<number>(22.5)
+  const { eventos, ativo } = useSimulator(simOpen, horaInicio)
 
   async function submitDebugReading() {
     setIsSending(true)
@@ -408,21 +412,38 @@ export function DebugModeButton() {
   }
 
   return (
-    <div className="flex flex-col gap-4 p-4">
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-max bg-gray-800 text-white px-4 py-2 rounded-[14px] text-sm font-medium hover:bg-gray-700 transition-colors"
-      >
-        {isOpen ? 'Fechar Painel de Debug' : 'Abrir Modo Debug'}
-      </button>
+    <>
+      <div className="flex flex-wrap items-center gap-3 p-4">
+        <button
+          onClick={() => setManualOpen(!manualOpen)}
+          className="bg-gray-800 text-white px-4 py-2 rounded-[14px] text-sm font-medium hover:bg-gray-700 transition-colors"
+        >
+          {manualOpen ? 'Fechar teste manual' : 'Teste manual IA'}
+        </button>
+        <button
+          onClick={() => setSimOpen(true)}
+          className="bg-gray-800 text-white px-4 py-2 rounded-[14px] text-sm font-medium hover:bg-gray-700 transition-colors"
+        >
+          Simulador Aruba (SSE)
+        </button>
+        <select
+          value={horaInicio ?? ''}
+          onChange={(e) => setHoraInicio(e.target.value ? Number(e.target.value) : undefined)}
+          className="border border-[#e5e7eb] rounded-[10px] px-3 py-2 text-sm text-[#101828]"
+        >
+          <option value="">Início do dataset</option>
+          {Array.from({ length: 24 }, (_, i) => (
+            <option key={i} value={i}>{String(i).padStart(2, '0')}:00h</option>
+          ))}
+        </select>
+      </div>
 
-      {isOpen && (
-        <div className="bg-[#f8fafc] border border-gray-200 rounded-[14px] p-6 shadow-sm">
+      {manualOpen && (
+        <div className="mx-4 mb-4 bg-[#f8fafc] border border-gray-200 rounded-[14px] p-6 shadow-sm">
           <p className="font-semibold text-[#101828] mb-1">Painel de Controlo Manual (Testes IA)</p>
           <p className="text-sm text-[#6a7282] mb-4">
-            Este painel chama diretamente o endpoint de inferência para testar casos específicos. O fluxo principal usa dados persistidos pelo backend.
+            Chama o endpoint de inferência com valores escolhidos. O fluxo principal usa dados persistidos pelo backend.
           </p>
-
           <div className="grid grid-cols-2 gap-4">
             {[
               ['Hora do Dia', horaManual, setHoraManual],
@@ -445,7 +466,6 @@ export function DebugModeButton() {
               </div>
             ))}
           </div>
-
           <button
             onClick={submitDebugReading}
             disabled={isSending}
@@ -455,7 +475,62 @@ export function DebugModeButton() {
           </button>
         </div>
       )}
-    </div>
+
+      {simOpen && (
+        <div className="fixed inset-0 z-50 flex justify-end">
+          <div
+            className="absolute inset-0 bg-black/40"
+            onClick={() => setSimOpen(false)}
+          />
+          <div className="relative w-[600px] h-full bg-white shadow-xl flex flex-col overflow-hidden">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[#e5e7eb]">
+              <div>
+                <p className="font-semibold text-lg text-[#101828]">Simulador de Debug</p>
+                <p className="text-sm text-[#6a7282]">
+                  {ativo ? '🟢 A simular aruba.txt' : '🔴 Desligado'}
+                </p>
+              </div>
+              <button
+                onClick={() => setSimOpen(false)}
+                className="text-[#6a7282] hover:text-[#101828] text-xl font-bold"
+              >
+                ✕
+              </button>
+            </div>
+            <div className="flex-1 overflow-y-auto px-6 py-4 flex flex-col gap-3">
+              {eventos.length === 0 && (
+                <p className="text-sm text-[#6a7282]">A aguardar eventos...</p>
+              )}
+              {eventos.map((e, i) => (
+                <div key={i} className="border border-[#e5e7eb] rounded-[12px] px-4 py-3 text-sm">
+                  <div className="flex items-center justify-between mb-1">
+                    <span className="font-medium text-[#101828]">{e.sensor} → {e.value}</span>
+                    <span className="text-xs text-[#6a7282]">{e.timestamp?.slice(11, 19)}</span>
+                  </div>
+                  {e.prediction && !e.prediction.error && (
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`px-2 py-0.5 rounded-[8px] text-xs font-medium ${
+                        e.prediction.is_anomaly
+                          ? 'bg-[#fff1f2] text-[#ef4444]'
+                          : 'bg-[#f0fdf4] text-[#10b981]'
+                      }`}>
+                        {e.prediction.expected_activity}
+                      </span>
+                      <span className="text-xs text-[#6a7282]">{e.prediction.confidence}%</span>
+                      {e.ground_truth_activity && (
+                        <span className="text-xs text-[#6a7282]">
+                          {e.prediction.expected_activity === e.ground_truth_activity ? '✅' : '❌'} {e.ground_truth_activity}
+                        </span>
+                      )}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
+    </>
   )
 }
 
