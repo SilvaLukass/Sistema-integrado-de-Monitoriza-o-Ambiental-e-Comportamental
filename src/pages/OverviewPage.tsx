@@ -375,19 +375,29 @@ function DeviceStatusCard() {
 
 export function DebugModeButton() {
   const [isOpen, setIsOpen] = useState(false)
-  const { eventos, estadoAtual, ativo } = useSimulator(isOpen)
+  const [horaInicio, setHoraInicio] = useState<number | undefined>(undefined)
+  const { eventos, estadoAtual, ativo } = useSimulator(isOpen, horaInicio)
 
   return (
     <>
-      <div className="p-4">
+      <div className="flex items-center gap-3 p-4">
         <button
           onClick={() => setIsOpen(true)}
-          className="w-max bg-gray-800 text-white px-4 py-2 rounded-[14px] text-sm font-medium hover:bg-gray-700 transition-colors"
+          className="bg-gray-800 text-white px-4 py-2 rounded-[14px] text-sm font-medium hover:bg-gray-700 transition-colors"
         >
           🔧 Abrir Simulador de Debug
         </button>
+        <select
+          value={horaInicio ?? ''}
+          onChange={(e) => setHoraInicio(e.target.value ? Number(e.target.value) : undefined)}
+          className="border border-[#e5e7eb] rounded-[10px] px-3 py-2 text-sm text-[#101828]"
+        >
+          <option value="">Início do dataset</option>
+          {Array.from({ length: 24 }, (_, i) => (
+            <option key={i} value={i}>{String(i).padStart(2, '0')}:00h</option>
+          ))}
+        </select>
       </div>
-
       {isOpen && (
         <div className="fixed inset-0 z-50 flex justify-end">
           {/* Overlay */}

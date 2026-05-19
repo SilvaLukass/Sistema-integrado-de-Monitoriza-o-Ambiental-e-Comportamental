@@ -81,16 +81,39 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
         print(f"    {nome:<25} {count:>6,} amostras  ({pct:.1f}%)")
 
 
-    print("\n=== Passo 2: Split Temporal 80/20 ===")
+    print("\n=== Passo 2: Split Temporal 70/15/15 ===")
 
-    # shuffle=False é OBRIGATÓRIO — não queremos "ver o futuro" durante o treino
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.20, random_state=42, shuffle=False
-    )
-    # print(f"  Treino : {len(X_train):,} minutos  (primeiros 80% do histórico)")
-    # print(f"  Teste  : {len(X_test):,} minutos  (últimos 20% do histórico)")
+    n = len(X)
+    train_end = int(n * 0.70)
+    val_end   = int(n * 0.85)
+    
+    X_train, y_train = X.iloc[:train_end], y.iloc[:train_end]
+    X_val,   y_val   = X.iloc[train_end:val_end], y.iloc[train_end:val_end] #O conjunto de validação é útil para ajustar hiperparâmetros, mas neste exemplo focamos no teste final.
+    X_test,  y_test  = X.iloc[val_end:], y.iloc[val_end:]   #O teste final é o mais importante, pois simula o desempenho do modelo em dados futuros.
 
-    smote = SMOTE(random_state=42, k_neighbors=3) 
+    print(f"  Treino     : {len(X_train):,} amostras (primeiros 70%)")
+    print(f"  Validação  : {len(X_val):,} amostras (15% intermédios)")
+    print(f"  Teste final: {len(X_test):,} amostras (últimos 15%)")
+
+    class_counts = y_train.value_counts()
+    sleeping_label = label_mapping['Sleeping']
+
+    target_count = int(class_counts.median())
+
+    sampling_strategy = {}
+    for label, count in class_counts.items():
+        if label == sleeping_label:
+            target = min(count * 2, target_count)
+        else:
+            target = target_count
+        if target > count:
+            sampling_strategy[label] = target
+
+    smote = SMOTE(
+    random_state=42,
+    k_neighbors=3,
+    sampling_strategy=sampling_strategy  # ← em vez de equilibrar tudo igualmente
+)
     
     print(f"A equilibrar balança... (Treino inicial: {X_train.shape[0]} amostras)")
     
@@ -102,9 +125,10 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
     print("\n=== Passo 3: Treinar RandomForest ===")
 
     rf_model = RandomForestClassifier(
-        n_estimators=200,         # mais árvores = mais estável (custo: memória/tempo)
-        max_depth=20,             # limita profundidade para evitar overfitting
+        n_estimators=300,         # mais árvores = mais estável (custo: memória/tempo)
+        max_depth=25,             # limita profundidade para evitar overfitting
         min_samples_leaf=5,       # cada folha precisa de pelo menos 5 amostras
+        max_features=0.3,        # cada árvore vê apenas 50% das features (mais diversidade)
         class_weight='balanced',  # compensa atividades raras (ex: 'Bathing')
         random_state=42,
         n_jobs=-1                 # Utilizamos todos os núcleos da CPU para processar os dados mais rápido
@@ -114,12 +138,15 @@ def train_routine_model(matrix: pd.DataFrame, label_mapping: dict):
     print("  Treino concluído!")
 
     print("\n=== Passo 4: Avaliar ===")
+    y_val_pred  = rf_model.predict(X_val)
+    acc_val     = accuracy_score(y_val, y_val_pred)
+    print(f"  Precisão Validação: {acc_val * 100:.2f}%")
 
     y_pred       = rf_model.predict(X_test)
     y_pred_proba = rf_model.predict_proba(X_test)   # confiança por classe
+    acc_test     = accuracy_score(y_test, y_pred)
 
-    acc = accuracy_score(y_test, y_pred)
-    print(f"\n  Precisão Global: {acc * 100:.2f}%")
+    print(f"\n  Precisão Global: {acc_test * 100:.2f}%")
 
     # Relatório com nomes legíveis em vez de números
     target_names = [inv_mapping.get(i, str(i)) for i in sorted(label_mapping.values())]

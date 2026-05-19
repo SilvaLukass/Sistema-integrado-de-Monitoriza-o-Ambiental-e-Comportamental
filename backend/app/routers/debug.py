@@ -8,7 +8,7 @@ from App.simulator import correr_simulacao
 router = APIRouter(prefix="/api/debug", tags=["debug"])
 
 @router.get("/simulate")
-async def stream_simulacao(request: Request):
+async def stream_simulacao(request: Request, hora_inicio: int | None = None):
     project_root = request.app.state.project_root
     caminho = project_root / "new_labeled_data" / "aruba.txt"
 
@@ -30,7 +30,7 @@ async def stream_simulacao(request: Request):
         }
 
     async def sse_generator():
-        async for evento in correr_simulacao(str(caminho), predict_fn, velocidade=10.0, compasso_segundos=0.1):
+        async for evento in correr_simulacao(str(caminho), predict_fn, velocidade=10.0, compasso_segundos=0.1, hora_inicio=hora_inicio):
             yield f"data: {json.dumps(evento)}\n\n"
 
     return StreamingResponse(sse_generator(), media_type="text/event-stream")
