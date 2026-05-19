@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
-export function useSimulator(enabled: boolean) {
+export function useSimulator(enabled: boolean, horaInicio?: number) {
   const [eventos, setEventos] = useState<any[]>([])
   const [estadoAtual, setEstadoAtual] = useState<Record<string, number>>({})
   const [ativo, setAtivo] = useState(false)
@@ -10,7 +10,10 @@ export function useSimulator(enabled: boolean) {
   useEffect(() => {
     if (!enabled) return  // ← só liga quando o drawer abre
 
-    const source = new EventSource(`${API_URL}/api/debug/simulate`)
+    const url = horaInicio !== undefined
+      ? `${API_URL}/api/debug/simulate?hora_inicio=${horaInicio}`
+      : `${API_URL}/api/debug/simulate`
+    const source = new EventSource(url)
     setAtivo(true)
 
     source.onmessage = (e) => {
@@ -28,7 +31,7 @@ export function useSimulator(enabled: boolean) {
       source.close()
       setAtivo(false)
     }
-  }, [enabled])  // ← re-corre quando enabled muda
+  }, [enabled, horaInicio])  
 
   return { eventos, estadoAtual, ativo }
 }

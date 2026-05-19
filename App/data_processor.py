@@ -189,6 +189,7 @@ class DataProcessor:
         for col in binary_cols_present:
             novas_colunas[f'{col}_roll5_sum'] = matrix[col].rolling(window=5, min_periods=1).sum()
             novas_colunas[f'{col}_roll15_sum'] = matrix[col].rolling(window=15, min_periods=1).sum()
+            novas_colunas[f'{col}_roll30_sum'] = matrix[col].rolling(window=30, min_periods=1).sum()
 
         # Juntamos todas as colunas novas de uma só vez (muito mais rápido e sem avisos)
         if novas_colunas:
