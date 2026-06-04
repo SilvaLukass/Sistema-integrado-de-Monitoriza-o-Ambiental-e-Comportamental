@@ -24,6 +24,7 @@ DEVICE_SEED = [
     ("M018", "PIR - Cozinha", "Cozinha", "pir"),
     ("D001", "Porta - Entrada Principal", "Entrada Principal", "door"),
     ("T001", "Temperatura - Sala", "Sala de Estar", "temperature"),
+    ("H001", "Humidade - Sala", "Sala de Estar", "humidity"),
     ("CO2", "Sensor CO2 - Sala", "Sala de Estar", "airQuality"),
 ]
 

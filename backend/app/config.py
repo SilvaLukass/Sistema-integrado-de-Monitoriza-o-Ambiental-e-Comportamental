@@ -9,4 +9,11 @@ class Settings(BaseSettings):
     simulator_interval_seconds: int = 10
     sqlite_path: str = "backend/data/eldercare.sqlite"
 
+    # RabbitMQ (camada de transporte publish/subscribe entre sensores e backend)
+    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+    rabbitmq_exchange: str = "eldercare.sensors"
+    rabbitmq_queue: str = "sensor_readings"
+    rabbitmq_routing_key: str = "sensors.simulator"  # usado pelo publisher local
+    consumer_enabled: bool = True
+
     model_config = SettingsConfigDict(env_file=".env", extra="ignore")

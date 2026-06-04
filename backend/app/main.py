@@ -1,10 +1,16 @@
+import asyncio
+import sys
 from contextlib import asynccontextmanager
+from pathlib import Path
+
+_project_root = Path(__file__).resolve().parents[2]
+if str(_project_root) not in sys.path:
+    sys.path.insert(0, str(_project_root))
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from telegram import Bot
-from pathlib import Path
 import joblib
 
 from .config import Settings
@@ -16,6 +22,7 @@ from .routers.system import router as system_router
 from .routers.debug import router as debug_router
 from .services.alert_store import AlertStore
 from .services.db import init_db
+from .services.messaging import get_connection, start_consumer
 from .services.simulator import start_simulator
 from .services.telegram_notifier import TelegramNotifier
 
@@ -23,6 +30,7 @@ from .services.telegram_notifier import TelegramNotifier
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     settings = Settings()
+    app.state.settings = settings
     project_root = Path(__file__).resolve().parents[2]
     app.state.project_root = project_root
     db_path = project_root / settings.sqlite_path
@@ -42,6 +50,15 @@ async def lifespan(app: FastAPI):
     app.state.ml_features = joblib.load(model_dir / "rf_features.pkl")
     app.state.ml_label_mapping = joblib.load(model_dir / "rf_label_mapping.pkl")
 
+    app.state.rabbitmq = None
+    consumer_task = None
+    try:
+        app.state.rabbitmq = await get_connection(settings)
+        if settings.consumer_enabled:
+            consumer_task = asyncio.create_task(start_consumer(app, settings))
+    except Exception as exc:
+        print(f"Aviso: nao foi possivel ligar ao RabbitMQ: {exc}")
+
     simulator_task = None
     if settings.simulator_enabled:
         simulator_task = start_simulator(app, settings.simulator_interval_seconds)
@@ -51,6 +68,14 @@ async def lifespan(app: FastAPI):
     finally:
         if simulator_task is not None:
             simulator_task.cancel()
+        if consumer_task is not None:
+            consumer_task.cancel()
+            try:
+                await consumer_task
+            except (asyncio.CancelledError, Exception):
+                pass
+        if app.state.rabbitmq is not None:
+            await app.state.rabbitmq.close()
         app.state.db.close()
 
 

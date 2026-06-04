@@ -5,8 +5,8 @@ import math
 import random
 from datetime import datetime
 
-from ..routers.model import process_model_readings
 from .co2_model import BASELINE_PPM, co2_step
+from .messaging import publish_reading
 
 SIMULATOR_START_CO2_PPM = 600.0
 
@@ -61,9 +61,20 @@ def build_simulated_readings(now: datetime | None = None, co2_ppm: float | None 
 
 
 async def simulator_loop(app, interval_seconds: int) -> None:
+    """Publisher simulado.
+
+    O simulador deixou de tocar diretamente no modelo/BD: passou a publicar as
+    leituras no broker RabbitMQ. O consumer do backend e que persiste e corre a
+    inferencia. Isto exercita o caminho real publish -> consume -> modelo -> BD
+    antes de existir hardware, e amanha o RPi substitui este publisher sem
+    qualquer alteracao no backend.
+    """
     if not hasattr(app.state, "simulator_state"):
         # Start slightly above outdoor baseline to better match typical indoor air.
         app.state.simulator_state = {"co2_ppm": SIMULATOR_START_CO2_PPM}
+
+    settings = app.state.settings
+    channel = None
 
     while True:
         previous_co2 = float(app.state.simulator_state.get("co2_ppm", BASELINE_PPM))
@@ -79,11 +90,26 @@ async def simulator_loop(app, interval_seconds: int) -> None:
         )
         readings["CO2"] = round(next_co2)
         app.state.simulator_state["co2_ppm"] = next_co2
-        app.state.db.add_sensor_reading(readings, source="simulator")
+
         try:
-            await process_model_readings(app, readings)
+            connection = getattr(app.state, "rabbitmq", None)
+            if connection is None:
+                raise RuntimeError("ligacao RabbitMQ indisponivel")
+            if channel is None or channel.is_closed:
+                channel = await connection.channel()
+            await publish_reading(
+                channel,
+                settings.rabbitmq_exchange,
+                settings.rabbitmq_routing_key,
+                source="simulator",
+                readings=readings,
+            )
         except Exception as exc:
-            print(f"Aviso: simulador nao conseguiu correr inferencia: {exc}")
+            # Nao deixar o simulador morrer se o broker estiver em baixo; tenta
+            # de novo na proxima iteracao (connect_robust reconecta sozinho).
+            channel = None
+            print(f"Aviso: simulador nao conseguiu publicar no broker: {exc}")
+
         await asyncio.sleep(interval_seconds)
 
 
