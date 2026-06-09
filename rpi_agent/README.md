@@ -31,8 +31,9 @@ pip install -r rpi_agent/requirements.txt
 
 ## Sensor wiring defaults
 
-- Reed switch: GPIO 17 (`--door-pin 17`)
-- DHT22 data pin: board `D4` (`--dht-pin D4`)
+- Magnetic door sensor: board `D23` / BCM GPIO 23 (`--door-pin 23`)
+- PIR movement sensor: BCM GPIO 17 (`--pir-pin 17`)
+- AM2320 temperature/humidity sensor: I2C (`SDA`/`SCL`)
 
 If your reed switch reports the inverse state, run the agent with
 `--door-active-low`.
@@ -56,8 +57,8 @@ consumer is running.
 ```bash
 python -m rpi_agent.main \
   --broker-url amqp://eldercare:PASSWORD@BROKER_IP:5672/ \
-  --door-pin 17 \
-  --dht-pin D4
+  --door-pin 23 \
+  --pir-pin 17
 ```
 
 The agent publishes every 10 seconds by default and also publishes immediately
