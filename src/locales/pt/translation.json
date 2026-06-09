@@ -146,6 +146,15 @@
     "temp": "Temp",
     "lastUpdate": "Última atualização",
     "allDevices": "Estado dos Dispositivos",
-    "devicesOnline": "{{online}} de {{total}} online"
+    "devicesOnline": "{{online}} de {{total}} online",
+    "cameraTitle": "Camara da divisao",
+    "cameraSubtitle": "Pedir um unico frame quando quiser confirmar o estado do idoso.",
+    "cameraButton": "Pedir imagem da camara",
+    "cameraLoading": "A captar...",
+    "cameraPreviewTitle": "Frame da camara",
+    "cameraPrivacyNote": "Imagem temporaria: nao e guardada no servidor.",
+    "cameraClose": "Fechar",
+    "cameraAlt": "Frame atual da camara",
+    "cameraError": "Nao foi possivel obter a imagem da camara."
   }
 }

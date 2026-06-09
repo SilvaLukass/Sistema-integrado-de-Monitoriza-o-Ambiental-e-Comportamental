@@ -9,8 +9,11 @@ class Settings(BaseSettings):
     simulator_interval_seconds: int = 10
     sqlite_path: str = "backend/data/eldercare.sqlite"
 
+    camera_service_url: str = ""
+    camera_capture_timeout_seconds: int = 15
+
     # RabbitMQ (camada de transporte publish/subscribe entre sensores e backend)
-    rabbitmq_url: str = "amqp://guest:guest@localhost:5672/"
+    rabbitmq_url: str = "amqp://eldercare:eldercare_dev@localhost:5672/"
     rabbitmq_exchange: str = "eldercare.sensors"
     rabbitmq_queue: str = "sensor_readings"
     rabbitmq_routing_key: str = "sensors.simulator"  # usado pelo publisher local

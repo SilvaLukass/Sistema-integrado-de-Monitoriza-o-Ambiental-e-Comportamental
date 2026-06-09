@@ -146,6 +146,15 @@
     "temp": "Temp",
     "lastUpdate": "Last update",
     "allDevices": "Device Status",
-    "devicesOnline": "{{online}} of {{total}} online"
+    "devicesOnline": "{{online}} of {{total}} online",
+    "cameraTitle": "Room camera",
+    "cameraSubtitle": "Request a single frame whenever you want to confirm the elder's status.",
+    "cameraButton": "Request camera image",
+    "cameraLoading": "Capturing...",
+    "cameraPreviewTitle": "Camera frame",
+    "cameraPrivacyNote": "Temporary image: it is not stored on the server.",
+    "cameraClose": "Close",
+    "cameraAlt": "Current camera frame",
+    "cameraError": "Could not fetch the camera image."
   }
 }

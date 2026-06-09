@@ -4,10 +4,10 @@ services:
     container_name: eldercare-rabbitmq
     ports:
       - "5672:5672"    # AMQP (publishers/consumers)
-      - "15672:15672"  # Management UI (http://localhost:15672 -> guest/guest)
+      - "15672:15672"  # Management UI (http://localhost:15672 -> eldercare/eldercare_dev)
     environment:
-      RABBITMQ_DEFAULT_USER: guest
-      RABBITMQ_DEFAULT_PASS: guest
+      RABBITMQ_DEFAULT_USER: eldercare
+      RABBITMQ_DEFAULT_PASS: eldercare_dev
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
     healthcheck:

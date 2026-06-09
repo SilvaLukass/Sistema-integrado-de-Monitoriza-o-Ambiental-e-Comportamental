@@ -67,18 +67,30 @@ def create_alert_record(payload: AlertCreate, app) -> Alert:
     return alert
 
 
+def _format_alert_message(alert: Alert, include_camera_prompt: bool = False) -> str:
+    relative = _format_ptpt_relative(alert.timestamp)
+    text = (
+        f"[{_severity_prefix(alert.severity)}] {alert.title}\n"
+        f"{alert.description}\n"
+        f"({relative})"
+    )
+    if include_camera_prompt:
+        text += "\n\nDeseja receber um frame da camara?"
+    return text
+
+
 async def notify_alert(alert: Alert, app) -> tuple[bool, str | None]:
     notifier: TelegramNotifier | None = app.state.telegram
     if notifier is None:
         return False, "Telegram desativado"
 
-    relative = _format_ptpt_relative(alert.timestamp)
     try:
-        await notifier.send_text(
-            f"[{_severity_prefix(alert.severity)}] {alert.title}\n"
-            f"{alert.description}\n"
-            f"({relative})"
-        )
+        if alert.severity == "danger":
+            await notifier.send_alert_with_camera_button(
+                _format_alert_message(alert, include_camera_prompt=True)
+            )
+        else:
+            await notifier.send_text(_format_alert_message(alert))
         return True, None
     except Exception as exc:
         return False, str(exc)

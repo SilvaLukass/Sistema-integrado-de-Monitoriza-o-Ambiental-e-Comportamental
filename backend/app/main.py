@@ -1,6 +1,7 @@
 import asyncio
 import sys
 from contextlib import asynccontextmanager
+from io import BytesIO
 from pathlib import Path
 
 _project_root = Path(__file__).resolve().parents[2]
@@ -10,17 +11,20 @@ if str(_project_root) not in sys.path:
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
-from telegram import Bot
+from telegram import Bot, Update
+from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 import joblib
 
 from .config import Settings
 from .routers.alerts import router as alerts_router
+from .routers.camera import router as camera_router
 from .routers.devices import router as devices_router
 from .routers.model import router as model_router
 from .routers.sensors import router as sensors_router
 from .routers.system import router as system_router
 from .routers.debug import router as debug_router
 from .services.alert_store import AlertStore
+from .services.camera import CameraCaptureError, capture_frame
 from .services.db import init_db
 from .services.messaging import get_connection, start_consumer
 from .services.simulator import start_simulator
@@ -36,12 +40,59 @@ async def lifespan(app: FastAPI):
     db_path = project_root / settings.sqlite_path
     app.state.db = init_db(db_path)
 
+    app.state.telegram_app = None
+
+    async def handle_camera_callback(
+        update: Update, context: ContextTypes.DEFAULT_TYPE
+    ) -> None:
+        query = update.callback_query
+        if query is None:
+            return
+
+        if query.data == "cam:no":
+            await query.answer("Pedido cancelado.")
+            if query.message is not None:
+                await query.edit_message_reply_markup(reply_markup=None)
+                await query.message.reply_text("Ok, nao sera enviado nenhum frame.")
+            return
+
+        if query.data != "cam:yes":
+            await query.answer()
+            return
+
+        await query.answer("A captar um frame da camara...")
+        try:
+            frame = await capture_frame(settings)
+        except CameraCaptureError as exc:
+            if query.message is not None:
+                await query.message.reply_text(f"Nao foi possivel obter a imagem: {exc}")
+            return
+
+        photo = BytesIO(frame)
+        photo.name = "camera-frame.jpg"
+        if query.message is not None:
+            await query.edit_message_reply_markup(reply_markup=None)
+            await context.bot.send_photo(
+                chat_id=query.message.chat_id,
+                photo=photo,
+                caption="Frame unico da camara. A imagem nao foi guardada.",
+            )
+
     if settings.telegram_bot_token and settings.telegram_chat_id:
         bot = Bot(token=settings.telegram_bot_token)
         app.state.telegram = TelegramNotifier(bot=bot, chat_id=settings.telegram_chat_id)
+        telegram_application = Application.builder().token(
+            settings.telegram_bot_token
+        ).build()
+        telegram_application.add_handler(CallbackQueryHandler(handle_camera_callback))
+        await telegram_application.initialize()
+        await telegram_application.start()
+        if telegram_application.updater is not None:
+            await telegram_application.updater.start_polling()
+        app.state.telegram_app = telegram_application
     else:
         print("Aviso: Bot do Telegram desativado (Faltam credenciais).")
-        app.state.telegram = None # Para não quebrar o resto do código
+        app.state.telegram = None
 
     app.state.alert_store = AlertStore(max_items=500, db=app.state.db)
     app.state.last_low_confidence_alert_at = None
@@ -76,6 +127,12 @@ async def lifespan(app: FastAPI):
                 pass
         if app.state.rabbitmq is not None:
             await app.state.rabbitmq.close()
+        telegram_application = app.state.telegram_app
+        if telegram_application is not None:
+            if telegram_application.updater is not None:
+                await telegram_application.updater.stop()
+            await telegram_application.stop()
+            await telegram_application.shutdown()
         app.state.db.close()
 
 
@@ -90,6 +147,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(alerts_router)
+app.include_router(camera_router)
 app.include_router(model_router)
 app.include_router(sensors_router)
 app.include_router(devices_router)

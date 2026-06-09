@@ -141,3 +141,23 @@ export async function getRecentActivity(): Promise<ActivityEvent[]> {
   return parseJson<ActivityEvent[]>(res, 'Erro ao buscar atividade recente')
 }
 
+async function parseBlob(res: Response, context: string): Promise<Blob> {
+  if (!res.ok) {
+    let detail = ''
+    try {
+      const body = (await res.json()) as { detail?: string }
+      detail = body.detail ? `: ${body.detail}` : ''
+    } catch {
+      detail = ''
+    }
+    throw new Error(`${context}: ${res.status}${detail}`)
+  }
+  return res.blob()
+}
+
+export async function captureCameraFrame(): Promise<Blob> {
+  const res = await fetch(`${API_URL}/api/camera/capture`, {
+    method: 'POST',
+  })
+  return parseBlob(res, 'Erro ao pedir imagem da camara')
+}
