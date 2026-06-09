@@ -36,6 +36,24 @@ services:
       - "1025:1025"
       - "8025:8025"
 
+  rabbitmq:
+    image: rabbitmq:3.13-management
+    container_name: eldercare_rabbitmq
+    environment:
+      RABBITMQ_DEFAULT_USER: eldercare
+      RABBITMQ_DEFAULT_PASS: eldercare_dev
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    healthcheck:
+      test: ["CMD", "rabbitmq-diagnostics", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
 volumes:
   postgres_data:
   redis_data:
+  rabbitmq_data:

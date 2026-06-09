@@ -140,6 +140,15 @@
     "temp": "Temp",
     "lastUpdate": "Last update",
     "allDevices": "Device Status",
+    "cameraTitle": "Room camera",
+    "cameraSubtitle": "Request a single frame only when needed, with no continuous recording.",
+    "cameraButton": "Request camera image",
+    "cameraLoading": "Requesting image...",
+    "cameraError": "Could not get the camera image.",
+    "cameraPreviewTitle": "Camera frame",
+    "cameraPrivacyNote": "Temporary image: it is not stored by the platform.",
+    "cameraClose": "Close image",
+    "cameraAlt": "Frame captured by the camera",
     "devicesOnline": "{{online}} of {{total}} online"
   }
 }
