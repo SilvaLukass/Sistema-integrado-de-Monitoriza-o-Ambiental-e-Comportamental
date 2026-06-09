@@ -5,6 +5,7 @@ from datetime import datetime
 
 def build_payload(
     door_open: int,
+    motion_detected: int,
     temp_c: float,
     humidity: float,
     now: datetime | None = None,
@@ -15,6 +16,7 @@ def build_payload(
         "hour": float(current.hour),
         "day_of_week": float(current.weekday()),
         "minute": float(current.minute),
+        "M001": float(motion_detected),
         "D001": float(door_open),
         "T001": round(float(temp_c), 1),
         "H001": round(float(humidity), 1),
