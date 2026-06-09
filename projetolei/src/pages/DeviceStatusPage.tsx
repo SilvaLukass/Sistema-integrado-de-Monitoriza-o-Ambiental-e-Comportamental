@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
 import { Activity, BatteryMedium, Camera, Cpu, DoorOpen, Wifi, Wind, X } from 'lucide-react'
-import { captureCameraFrame } from '../api/backend'
+import { captureCameraFrame, fetchRpiMetrics, type RpiMetrics } from '../api/backend'
 
 interface RpiMetric {
   label: string
@@ -116,15 +116,107 @@ function CameraCaptureCard() {
 }
 
 
+const METRICS_REFRESH_MS = 30_000
+
+function formatUptime(seconds: number): string {
+  const days = Math.floor(seconds / 86_400)
+  const hours = Math.floor((seconds % 86_400) / 3_600)
+  const minutes = Math.floor((seconds % 3_600) / 60)
+
+  if (days > 0) {
+    return `${days}d ${hours}h`
+  }
+  if (hours > 0) {
+    return `${hours}h ${minutes}m`
+  }
+  return `${minutes}m`
+}
+
+function buildRpiMetrics(
+  data: RpiMetrics | null,
+  t: (key: string) => string,
+): RpiMetric[] {
+  if (!data) {
+    return [
+      { label: t('deviceStatus.cpuUsage'), value: '—', percentage: 0 },
+      { label: t('deviceStatus.memoryUsage'), value: '—', percentage: 0 },
+      { label: t('deviceStatus.temperature'), value: '—', subtitle: t('deviceStatus.metricsUnavailable') },
+      { label: t('deviceStatus.uptime'), value: '—', subtitle: t('deviceStatus.metricsUnavailable') },
+    ]
+  }
+
+  const temperatureSubtitle =
+    data.temperature_c === null
+      ? t('deviceStatus.temperatureUnavailable')
+      : data.temperature_c >= 70
+        ? t('deviceStatus.highTemperature')
+        : t('deviceStatus.withinLimits')
+
+  return [
+    {
+      label: t('deviceStatus.cpuUsage'),
+      value: `${Math.round(data.cpu_percent)}%`,
+      percentage: Math.min(100, Math.max(0, data.cpu_percent)),
+    },
+    {
+      label: t('deviceStatus.memoryUsage'),
+      value: `${Math.round(data.memory_percent)}%`,
+      percentage: Math.min(100, Math.max(0, data.memory_percent)),
+    },
+    {
+      label: t('deviceStatus.temperature'),
+      value: data.temperature_c === null ? '—' : `${Math.round(data.temperature_c)}°C`,
+      subtitle: temperatureSubtitle,
+    },
+    {
+      label: t('deviceStatus.uptime'),
+      value: formatUptime(data.uptime_seconds),
+      subtitle: t('deviceStatus.daysHours'),
+    },
+  ]
+}
+
 function RaspberryPiCard() {
   const { t } = useTranslation()
+  const [metrics, setMetrics] = useState<RpiMetrics | null>(null)
+  const [isLoading, setIsLoading] = useState(true)
+  const [isOnline, setIsOnline] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
-  const rpiMetrics: RpiMetric[] = [
-    { label: t('deviceStatus.cpuUsage'),      value: '34%', percentage: 34 },
-    { label: t('deviceStatus.memoryUsage'),  value: '56%', percentage: 56 },
-    { label: t('deviceStatus.temperature'),     value: '42°C', subtitle: t('deviceStatus.withinLimits') },
-    { label: t('deviceStatus.uptime'),     value: '12:08', subtitle: t('deviceStatus.daysHours') },
-  ]
+  useEffect(() => {
+    let cancelled = false
+
+    async function loadMetrics() {
+      try {
+        const data = await fetchRpiMetrics()
+        if (cancelled) return
+        setMetrics(data)
+        setIsOnline(true)
+        setError(null)
+      } catch (err) {
+        if (cancelled) return
+        setMetrics(null)
+        setIsOnline(false)
+        setError(err instanceof Error ? err.message : t('deviceStatus.metricsError'))
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false)
+        }
+      }
+    }
+
+    void loadMetrics()
+    const intervalId = window.setInterval(() => {
+      void loadMetrics()
+    }, METRICS_REFRESH_MS)
+
+    return () => {
+      cancelled = true
+      window.clearInterval(intervalId)
+    }
+  }, [t])
+
+  const rpiMetrics = buildRpiMetrics(metrics, t)
 
   return (
     <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm p-6 flex flex-col gap-6">
@@ -138,10 +230,18 @@ function RaspberryPiCard() {
             <p className="text-sm text-[#6a7282]">{t('deviceStatus.rpiSubtitle')}</p>
           </div>
         </div>
-        <span className="bg-[#f0fdf4] text-[#10b981] font-semibold text-base px-4 py-2 rounded-[14px]">
-          {t('status.online')}
+        <span
+          className={`font-semibold text-base px-4 py-2 rounded-[14px] ${
+            isOnline
+              ? 'bg-[#f0fdf4] text-[#10b981]'
+              : 'bg-[#f3f4f6] text-[#6a7282]'
+          }`}
+        >
+          {isLoading ? t('deviceStatus.metricsLoading') : isOnline ? t('status.online') : t('status.offline')}
         </span>
       </div>
+
+      {error && <p className="text-sm text-[#dc2626]">{error}</p>}
 
       <div className="grid grid-cols-4 gap-4">
         {rpiMetrics.map((metric) => (

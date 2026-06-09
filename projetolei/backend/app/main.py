@@ -11,6 +11,7 @@ from telegram.ext import Application, CallbackQueryHandler, ContextTypes
 from .config import Settings
 from .routers.alerts import router as alerts_router
 from .routers.camera import router as camera_router
+from .routers.system import router as system_router
 from .services.camera import CameraCaptureError, capture_frame
 from .services.telegram_notifier import TelegramNotifier
 
@@ -101,6 +102,7 @@ app.add_middleware(
 )
 
 app.include_router(camera_router)
+app.include_router(system_router)
 app.include_router(alerts_router)
 
 
