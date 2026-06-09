@@ -64,6 +64,22 @@ python -m rpi_agent.main \
 The agent publishes every 10 seconds by default and also publishes immediately
 when the door state changes.
 
+## Metrics service
+
+Expose CPU, memory, SoC temperature, and uptime for the dashboard:
+
+```bash
+python rpi_agent/metrics_service.py
+```
+
+The backend should use:
+
+```env
+METRICS_SERVICE_URL=http://RPI_IP:5002
+```
+
+The service listens on port `5002` and answers `GET /metrics` with JSON.
+
 ## Camera service
 
 Install `fswebcam` on the RPi:

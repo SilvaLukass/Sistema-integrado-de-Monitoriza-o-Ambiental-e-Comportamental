@@ -3,9 +3,10 @@ from __future__ import annotations
 import os
 import time
 
-from fastapi import APIRouter
+from fastapi import APIRouter, HTTPException, Request
 
 from ..models import SystemMetrics
+from ..services.metrics import RpiMetricsError, fetch_rpi_metrics
 
 router = APIRouter()
 STARTED_AT = time.time()
@@ -31,8 +32,7 @@ def _temperature_best_effort() -> float | None:
     return None
 
 
-@router.get("/api/system/metrics", response_model=SystemMetrics)
-async def system_metrics():
+def _local_system_metrics() -> SystemMetrics:
     if psutil is not None:
         try:
             uptime_seconds = int(time.time() - psutil.boot_time())
@@ -56,3 +56,25 @@ async def system_metrics():
         source="stdlib-fallback",
         extra={"load_avg_1m": load},
     )
+
+
+@router.get("/api/system/metrics", response_model=SystemMetrics)
+async def system_metrics(request: Request):
+    settings = request.app.state.settings
+
+    if settings.metrics_service_url.strip():
+        try:
+            rpi_metrics = await fetch_rpi_metrics(settings)
+        except RpiMetricsError as exc:
+            raise HTTPException(status_code=503, detail=str(exc)) from exc
+
+        temperature = rpi_metrics.get("temperature_c")
+        return SystemMetrics(
+            cpu_usage=float(rpi_metrics["cpu_percent"]),
+            memory_usage=float(rpi_metrics["memory_percent"]),
+            temperature=float(temperature) if temperature is not None else None,
+            uptime_seconds=int(rpi_metrics["uptime_seconds"]),
+            source="rpi",
+        )
+
+    return _local_system_metrics()

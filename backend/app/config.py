@@ -12,6 +12,11 @@ class Settings(BaseSettings):
     camera_service_url: str = ""
     camera_capture_timeout_seconds: int = 15
 
+    # HTTP metrics service running on the Raspberry Pi, for example:
+    # http://192.168.1.50:5002
+    metrics_service_url: str = ""
+    metrics_fetch_timeout_seconds: int = 5
+
     # RabbitMQ (camada de transporte publish/subscribe entre sensores e backend)
     rabbitmq_url: str = "amqp://eldercare:eldercare_dev@localhost:5672/"
     rabbitmq_exchange: str = "eldercare.sensors"

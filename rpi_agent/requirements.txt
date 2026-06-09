@@ -1,4 +1,5 @@
 adafruit-circuitpython-am2320
 flask
 pika
+psutil
 RPi.GPIO

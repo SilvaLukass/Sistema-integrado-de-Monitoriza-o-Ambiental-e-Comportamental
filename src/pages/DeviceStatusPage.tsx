@@ -111,10 +111,19 @@ function CameraCaptureCard() {
 
 function RaspberryPiCard({ simpleMode }: { simpleMode: boolean }) {
   const { t } = useTranslation()
-  const { data } = useQuery({
+  const { data, isLoading, isError, error } = useQuery({
     queryKey: ['system-metrics'],
     queryFn: getSystemMetrics,
+    refetchInterval: 30_000,
   })
+
+  const isOnline = Boolean(data) && !isError
+  const temperatureSubtitle =
+    data?.temperature === null || data?.temperature === undefined
+      ? t('deviceStatus.temperatureUnavailable')
+      : data.temperature >= 70
+        ? t('deviceStatus.highTemperature')
+        : t('deviceStatus.withinLimits')
 
   const rpiMetrics = data
     ? [
@@ -123,7 +132,7 @@ function RaspberryPiCard({ simpleMode }: { simpleMode: boolean }) {
         {
           label: t('deviceStatus.temperature'),
           value: data.temperature === null ? 'N/D' : `${Math.round(data.temperature)}°C`,
-          subtitle: data.temperature === null ? 'Sensor não disponível neste host' : t('deviceStatus.withinLimits'),
+          subtitle: temperatureSubtitle,
         },
         { label: t('deviceStatus.uptime'), value: formatDuration(data.uptime_seconds), subtitle: t('deviceStatus.daysHours') },
       ]
@@ -139,14 +148,26 @@ function RaspberryPiCard({ simpleMode }: { simpleMode: boolean }) {
           <div>
             <p className="font-semibold text-lg text-[#101828]">{t('deviceStatus.rpiController')}</p>
             <p className="text-sm text-[#6a7282]">
-              {t('deviceStatus.rpiSubtitle')} · {data?.source ?? 'a aguardar backend'}
+              {t('deviceStatus.rpiSubtitle')} · {data?.source ?? t('deviceStatus.metricsLoading')}
             </p>
           </div>
         </div>
-        <span className="bg-[#f0fdf4] text-[#10b981] font-semibold text-base px-4 py-2 rounded-[14px]">
-          {t('status.online')}
+        <span
+          className={`font-semibold text-base px-4 py-2 rounded-[14px] ${
+            isOnline
+              ? 'bg-[#f0fdf4] text-[#10b981]'
+              : 'bg-[#f3f4f6] text-[#6a7282]'
+          }`}
+        >
+          {isLoading ? t('deviceStatus.metricsLoading') : isOnline ? t('status.online') : t('status.offline')}
         </span>
       </div>
+
+      {isError && (
+        <p className="text-sm text-[#dc2626]">
+          {error instanceof Error ? error.message : t('deviceStatus.metricsError')}
+        </p>
+      )}
 
       {!simpleMode && (
         <div className="grid grid-cols-4 gap-4">

@@ -78,7 +78,14 @@ export interface SystemMetrics {
 
 async function parseJson<T>(res: Response, context: string): Promise<T> {
   if (!res.ok) {
-    throw new Error(`${context}: ${res.status}`)
+    let detail = ''
+    try {
+      const body = (await res.json()) as { detail?: string }
+      detail = body.detail ? `: ${body.detail}` : ''
+    } catch {
+      detail = ''
+    }
+    throw new Error(`${context}: ${res.status}${detail}`)
   }
   return res.json() as Promise<T>
 }
