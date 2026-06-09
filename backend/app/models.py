@@ -84,7 +84,7 @@ class DeviceStatus(BaseModel):
 
 class ActivityEvent(BaseModel):
     room: str
-    time: str
+    timestamp: str
     description: str
     sensorLabel: str
     sensorColor: Literal["blue", "purple"] = "blue"

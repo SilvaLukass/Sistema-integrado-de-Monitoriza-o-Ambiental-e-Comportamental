@@ -109,6 +109,13 @@ function SafetyStatusHeader() {
   )
 }
 
+function formatActivityTime(timestamp: string) {
+  return new Date(timestamp).toLocaleString('pt-PT', {
+    hour: '2-digit',
+    minute: '2-digit',
+  })
+}
+
 function ResidentActivityCard() {
   const { t } = useTranslation()
   const { data: activity = [] } = useQuery({
@@ -132,7 +139,7 @@ function ResidentActivityCard() {
           </div>
         )}
         {activity.map((event: ActivityEvent, index) => (
-          <div key={`${event.time}-${event.room}-${index}`} className="flex gap-4">
+          <div key={`${event.timestamp}-${event.room}-${index}`} className="flex gap-4">
             <div className="flex flex-col items-center w-3 shrink-0">
               <div className="size-3 rounded-full bg-[#2563eb] shrink-0" />
               {index < activity.length - 1 && (
@@ -143,7 +150,7 @@ function ResidentActivityCard() {
             <div className="pb-4 flex-1 min-w-0">
               <div className="flex items-center justify-between">
                 <p className="font-medium text-base text-[#101828]">{event.room}</p>
-                <p className="text-sm text-[#6a7282]">{event.time}</p>
+                <p className="text-sm text-[#6a7282]">{formatActivityTime(event.timestamp)}</p>
               </div>
               <p className="text-sm text-[#4a5565] mt-1">{event.description}</p>
               <span className={`inline-block mt-2 px-3 py-1 rounded-[10px] text-xs font-medium ${

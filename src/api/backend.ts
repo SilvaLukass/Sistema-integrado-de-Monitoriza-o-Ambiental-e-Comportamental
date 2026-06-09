@@ -61,7 +61,7 @@ export interface DeviceStatus {
 
 export interface ActivityEvent {
   room: string
-  time: string
+  timestamp: string
   description: string
   sensorLabel: string
   sensorColor: 'blue' | 'purple'

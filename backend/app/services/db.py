@@ -334,18 +334,19 @@ class Database:
         for row in rows:
             payload = json.loads(row["payload_json"])
             dt = datetime.fromisoformat(row["ts"]).astimezone(timezone.utc)
-            time_label = dt.strftime("%H:%M")
+            timestamp = dt.isoformat()
+            minute_label = dt.strftime("%H:%M")
             for sensor, room in MOTION_SENSOR_ROOMS.items():
                 if float(payload.get(sensor, 0.0)) <= 0:
                     continue
-                key = (sensor, time_label)
+                key = (sensor, minute_label)
                 if key in seen:
                     continue
                 seen.add(key)
                 events.append(
                     {
                         "room": room,
-                        "time": time_label,
+                        "timestamp": timestamp,
                         "description": "Movimento detetado",
                         "sensorLabel": "PIR",
                         "sensorColor": "blue",
@@ -354,10 +355,14 @@ class Database:
                 if len(events) >= limit:
                     return events
             if float(payload.get("D001", 0.0)) > 0 and len(events) < limit:
+                door_key = ("D001", minute_label)
+                if door_key in seen:
+                    continue
+                seen.add(door_key)
                 events.append(
                     {
                         "room": "Entrada Principal",
-                        "time": time_label,
+                        "timestamp": timestamp,
                         "description": "Porta aberta",
                         "sensorLabel": "Porta",
                         "sensorColor": "purple",
