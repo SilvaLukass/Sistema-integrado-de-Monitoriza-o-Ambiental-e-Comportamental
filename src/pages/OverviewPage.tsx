@@ -121,6 +121,7 @@ function ResidentActivityCard() {
   const { data: activity = [] } = useQuery({
     queryKey: ['activity-recent'],
     queryFn: getRecentActivity,
+    refetchInterval: 5000,
   })
 
   return (

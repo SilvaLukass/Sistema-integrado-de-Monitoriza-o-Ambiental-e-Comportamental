@@ -326,49 +326,58 @@ class Database:
             SELECT ts, payload_json
             FROM sensor_readings
             ORDER BY ts DESC
-            LIMIT 80
+            LIMIT 200
             """
         ).fetchall()
         events: list[dict[str, str]] = []
-        seen: set[tuple[str, str]] = set()
-        for row in rows:
+        last_motion: dict[str, int] = {sensor: 0 for sensor in MOTION_SENSOR_ROOMS}
+        last_door: int | None = None
+
+        for row in reversed(rows):
             payload = json.loads(row["payload_json"])
             dt = datetime.fromisoformat(row["ts"]).astimezone(timezone.utc)
             timestamp = dt.isoformat()
-            minute_label = dt.strftime("%H:%M")
+
             for sensor, room in MOTION_SENSOR_ROOMS.items():
-                if float(payload.get(sensor, 0.0)) <= 0:
-                    continue
-                key = (sensor, minute_label)
-                if key in seen:
-                    continue
-                seen.add(key)
-                events.append(
-                    {
-                        "room": room,
-                        "timestamp": timestamp,
-                        "description": "Movimento detetado",
-                        "sensorLabel": "PIR",
-                        "sensorColor": "blue",
-                    }
-                )
-                if len(events) >= limit:
-                    return events
-            if float(payload.get("D001", 0.0)) > 0 and len(events) < limit:
-                door_key = ("D001", minute_label)
-                if door_key in seen:
-                    continue
-                seen.add(door_key)
-                events.append(
-                    {
-                        "room": "Entrada Principal",
-                        "timestamp": timestamp,
-                        "description": "Porta aberta",
-                        "sensorLabel": "Porta",
-                        "sensorColor": "purple",
-                    }
-                )
-        return events
+                value = int(float(payload.get(sensor, 0.0)) > 0)
+                if value == 1 and last_motion[sensor] == 0:
+                    events.append(
+                        {
+                            "room": room,
+                            "timestamp": timestamp,
+                            "description": "Movimento detetado",
+                            "sensorLabel": "PIR",
+                            "sensorColor": "blue",
+                        }
+                    )
+                last_motion[sensor] = value
+
+            if "D001" in payload:
+                door_value = int(float(payload.get("D001", 0.0)) > 0)
+                if last_door is not None:
+                    if door_value == 1 and last_door == 0:
+                        events.append(
+                            {
+                                "room": "Entrada Principal",
+                                "timestamp": timestamp,
+                                "description": "Porta aberta",
+                                "sensorLabel": "Porta",
+                                "sensorColor": "purple",
+                            }
+                        )
+                    elif door_value == 0 and last_door == 1:
+                        events.append(
+                            {
+                                "room": "Entrada Principal",
+                                "timestamp": timestamp,
+                                "description": "Porta fechada",
+                                "sensorLabel": "Porta",
+                                "sensorColor": "purple",
+                            }
+                        )
+                last_door = door_value
+
+        return list(reversed(events[-limit:]))
 
 
 def init_db(db_path: Path) -> Database:
