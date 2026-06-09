@@ -1,5 +1,7 @@
+import { useEffect, useState, type ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
-import { Cpu, Wifi, Wind, DoorOpen, Activity, BatteryMedium } from 'lucide-react'
+import { Activity, BatteryMedium, Camera, Cpu, DoorOpen, Wifi, Wind, X } from 'lucide-react'
+import { captureCameraFrame } from '../api/backend'
 
 interface RpiMetric {
   label: string
@@ -12,7 +14,7 @@ interface SensorCard {
   id: string
   name: string
   model: string
-  icon: React.ReactNode
+  icon: ReactNode
   online: boolean
   metrics: { label: string; value: string }[]
   lastUpdated: string
@@ -25,6 +27,92 @@ interface DeviceRow {
   online: boolean
   battery: number
   lastSeen: string
+}
+
+
+function CameraCaptureCard() {
+  const { t } = useTranslation()
+  const [imageUrl, setImageUrl] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    return () => {
+      if (imageUrl) URL.revokeObjectURL(imageUrl)
+    }
+  }, [imageUrl])
+
+  async function handleCapture() {
+    setIsLoading(true)
+    setError(null)
+    try {
+      const blob = await captureCameraFrame()
+      const nextUrl = URL.createObjectURL(blob)
+      setImageUrl((currentUrl) => {
+        if (currentUrl) URL.revokeObjectURL(currentUrl)
+        return nextUrl
+      })
+    } catch (err) {
+      setError(err instanceof Error ? err.message : t('deviceStatus.cameraError'))
+    } finally {
+      setIsLoading(false)
+    }
+  }
+
+  function closePreview() {
+    setImageUrl((currentUrl) => {
+      if (currentUrl) URL.revokeObjectURL(currentUrl)
+      return null
+    })
+  }
+
+  return (
+    <div className="bg-white border border-[#e5e7eb] rounded-[14px] shadow-sm p-6 flex flex-col gap-4">
+      <div className="flex items-start justify-between gap-4">
+        <div className="flex items-center gap-3">
+          <div className="size-12 bg-[rgba(37,99,235,0.1)] rounded-[14px] flex items-center justify-center shrink-0">
+            <Camera size={24} className="text-[#2563eb]" />
+          </div>
+          <div>
+            <p className="font-semibold text-lg text-[#101828]">{t('deviceStatus.cameraTitle')}</p>
+            <p className="text-sm text-[#6a7282] mt-1">{t('deviceStatus.cameraSubtitle')}</p>
+          </div>
+        </div>
+        <button
+          type="button"
+          onClick={handleCapture}
+          disabled={isLoading}
+          className="bg-[#2563eb] disabled:bg-[#9ca3af] text-white font-semibold text-sm px-4 py-2 rounded-[12px] transition-colors"
+        >
+          {isLoading ? t('deviceStatus.cameraLoading') : t('deviceStatus.cameraButton')}
+        </button>
+      </div>
+
+      {error && <p className="text-sm text-[#dc2626]">{error}</p>}
+
+      {imageUrl && (
+        <div className="fixed inset-0 bg-black/55 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-[14px] shadow-xl max-w-2xl w-full overflow-hidden">
+            <div className="flex items-center justify-between px-5 py-4 border-b border-[#e5e7eb]">
+              <div>
+                <p className="font-semibold text-lg text-[#101828]">{t('deviceStatus.cameraPreviewTitle')}</p>
+                <p className="text-xs text-[#6a7282]">{t('deviceStatus.cameraPrivacyNote')}</p>
+              </div>
+              <button
+                type="button"
+                onClick={closePreview}
+                className="size-9 rounded-full hover:bg-[#f3f4f6] flex items-center justify-center"
+                aria-label={t('deviceStatus.cameraClose')}
+              >
+                <X size={20} className="text-[#4a5565]" />
+              </button>
+            </div>
+            <img src={imageUrl} alt={t('deviceStatus.cameraAlt')} className="w-full object-contain bg-black" />
+          </div>
+        </div>
+      )}
+    </div>
+  )
 }
 
 
@@ -234,6 +322,7 @@ export function DeviceStatusPage() {
       </div>
 
       <RaspberryPiCard />
+      <CameraCaptureCard />
       <ConnectedSensorsCard />
       <AllDevicesCard />
     </div>

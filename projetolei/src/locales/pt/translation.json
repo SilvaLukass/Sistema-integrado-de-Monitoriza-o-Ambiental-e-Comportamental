@@ -140,6 +140,15 @@
     "temp": "Temp",
     "lastUpdate": "Última atualização",
     "allDevices": "Estado dos Dispositivos",
+    "cameraTitle": "Câmara da divisão",
+    "cameraSubtitle": "Pede um único frame apenas quando necessário, sem gravação contínua.",
+    "cameraButton": "Pedir imagem da câmara",
+    "cameraLoading": "A pedir imagem...",
+    "cameraError": "Não foi possível obter a imagem da câmara.",
+    "cameraPreviewTitle": "Frame da câmara",
+    "cameraPrivacyNote": "Imagem temporária: não é guardada pela plataforma.",
+    "cameraClose": "Fechar imagem",
+    "cameraAlt": "Frame capturado pela câmara",
     "devicesOnline": "{{online}} de {{total}} online"
   }
 }

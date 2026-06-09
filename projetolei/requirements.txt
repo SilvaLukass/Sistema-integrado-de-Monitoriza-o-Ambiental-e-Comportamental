@@ -1,0 +1,6 @@
+aio-pika
+fastapi
+httpx
+pydantic-settings
+python-telegram-bot
+uvicorn[standard]
