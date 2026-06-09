@@ -28,7 +28,7 @@ class MockSensorReader:
 
 
 class RpiSensorReader:
-    """Read the reed switch and DHT22 from Raspberry Pi GPIO pins."""
+    """Read the reed switch and AM2320 temperature/humidity sensor."""
 
     def __init__(
         self,
@@ -38,7 +38,7 @@ class RpiSensorReader:
     ) -> None:
         try:
             from gpiozero import Button
-            import adafruit_dht
+            import adafruit_am2320
             import board
         except ImportError as exc:
             raise RuntimeError(
@@ -46,19 +46,19 @@ class RpiSensorReader:
                 "no Raspberry Pi ou use --mock fora do RPi."
             ) from exc
 
-        board_pin = getattr(board, dht_pin, None)
-        if board_pin is None:
-            raise ValueError(f"Pino DHT22 invalido: {dht_pin}")
-
         self._door = Button(door_pin, pull_up=True)
-        self._dht = adafruit_dht.DHT22(board_pin)
+        self._am2320 = adafruit_am2320.AM2320(board.I2C())
         self._door_active_high = door_active_high
 
     def read(self) -> SensorSnapshot:
         pressed = bool(self._door.is_pressed)
         door_open = pressed if self._door_active_high else not pressed
+        temperature = self._am2320.temperature
+        humidity = self._am2320.relative_humidity
+        if temperature is None or humidity is None:
+            raise RuntimeError("AM2320 nao devolveu temperatura/humidade.")
         return SensorSnapshot(
             door_open=1 if door_open else 0,
-            temp_c=float(self._dht.temperature),
-            humidity=float(self._dht.humidity),
+            temp_c=float(temperature),
+            humidity=float(humidity),
         )
