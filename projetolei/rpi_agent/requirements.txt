@@ -1,4 +1,4 @@
-adafruit-circuitpython-dht
+adafruit-circuitpython-am2320
 flask
 gpiozero
 pika
