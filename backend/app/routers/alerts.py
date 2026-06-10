@@ -33,12 +33,12 @@ def _format_ptpt_relative(iso_timestamp: str) -> str:
     days = hours // 24
 
     if minutes < 1:
-        return "agora mesmo"
+        return "Agora mesmo"
     if minutes < 60:
-        return f"há {minutes} minuto" if minutes == 1 else f"há {minutes} minutos"
+        return f"Há {minutes} minuto" if minutes == 1 else f"Há {minutes} minutos"
     if hours < 24:
-        return f"há {hours} hora" if hours == 1 else f"há {hours} horas"
-    return f"há {days} dia" if days == 1 else f"há {days} dias"
+        return f"Há {hours} hora" if hours == 1 else f"Há {hours} horas"
+    return f"Há {days} dia" if days == 1 else f"Há {days} dias"
 
 
 def _severity_prefix(severity: str) -> str:
