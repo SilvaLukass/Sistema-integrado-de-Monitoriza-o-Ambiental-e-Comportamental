@@ -114,7 +114,7 @@ function RaspberryPiCard({ simpleMode }: { simpleMode: boolean }) {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ['system-metrics'],
     queryFn: getSystemMetrics,
-    refetchInterval: 30_000,
+    refetchInterval: 15_000,
   })
 
   const isOnline = Boolean(data) && !isError
@@ -326,6 +326,7 @@ export function DeviceStatusPage() {
   const { data: devices = [] } = useQuery({
     queryKey: ['devices'],
     queryFn: getDevices,
+    refetchInterval: 5_000,
   })
 
   return (

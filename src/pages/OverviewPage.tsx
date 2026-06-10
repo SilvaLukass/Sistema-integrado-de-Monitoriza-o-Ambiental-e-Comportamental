@@ -121,7 +121,7 @@ function ResidentActivityCard() {
   const { data: activity = [] } = useQuery({
     queryKey: ['activity-recent'],
     queryFn: getRecentActivity,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
   })
 
   return (
@@ -276,6 +276,7 @@ function RecentAlertsCard() {
   const { data: alerts = [] } = useQuery({
     queryKey: ['alerts'],
     queryFn: getAlerts,
+    refetchInterval: 10_000,
   })
   const renderedAlerts = alerts.slice(0, 3)
 
@@ -324,6 +325,7 @@ function DeviceStatusCard() {
   const { data: devices = [] } = useQuery({
     queryKey: ['devices'],
     queryFn: getDevices,
+    refetchInterval: 5_000,
   })
   const visibleDevices = devices.slice(0, 3)
   const onlineCount = devices.filter((device: DeviceStatus) => device.online).length

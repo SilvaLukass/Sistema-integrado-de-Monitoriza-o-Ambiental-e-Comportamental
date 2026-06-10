@@ -39,7 +39,7 @@ export function OccupancyHeatmap() {
   const { data = [] } = useQuery({
     queryKey: ['occupancy-heatmap'],
     queryFn: getOccupancyHeatmap,
-    refetchInterval: 15000,
+    refetchInterval: 30_000,
   })
 
   const heatmapData: OccupancyHeatmapCell[] =
