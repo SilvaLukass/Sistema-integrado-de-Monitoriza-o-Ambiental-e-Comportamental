@@ -12,21 +12,18 @@ from ..models import Alert, ModelInferenceResponse, OccupancyHeatmapCell
 
 MOTION_SENSOR_ROOMS = {
     "M001": "Sala de Estar",
-    "M003": "Quarto",
-    "M004": "Casa de Banho",
-    "M018": "Cozinha",
 }
 
+# Hardware wired to the Raspberry Pi in the current deployment.
 DEVICE_SEED = [
     ("M001", "PIR - Sala de Estar", "Sala de Estar", "pir"),
-    ("M003", "PIR - Quarto", "Quarto", "pir"),
-    ("M004", "PIR - Casa de Banho", "Casa de Banho", "pir"),
-    ("M018", "PIR - Cozinha", "Cozinha", "pir"),
     ("D001", "Porta - Entrada Principal", "Entrada Principal", "door"),
     ("T001", "Temperatura - Sala", "Sala de Estar", "temperature"),
     ("H001", "Humidade - Sala", "Sala de Estar", "humidity"),
     ("CO2", "Sensor CO2 - Sala", "Sala de Estar", "airQuality"),
 ]
+
+DEVICE_IDS = {device_id for device_id, *_ in DEVICE_SEED}
 
 
 def utc_now_iso() -> str:
@@ -105,6 +102,11 @@ class Database:
             self._conn.commit()
 
     def seed_devices(self) -> None:
+        placeholders = ", ".join("?" for _ in DEVICE_IDS)
+        self._execute(
+            f"DELETE FROM devices WHERE id NOT IN ({placeholders})",
+            tuple(DEVICE_IDS),
+        )
         for device_id, name, room, device_type in DEVICE_SEED:
             self._execute(
                 """
@@ -112,6 +114,14 @@ class Database:
                 VALUES (?, ?, ?, ?, ?, 0)
                 """,
                 (device_id, name, room, device_type, 100),
+            )
+            self._execute(
+                """
+                UPDATE devices
+                SET name = ?, room = ?, type = ?
+                WHERE id = ?
+                """,
+                (name, room, device_type, device_id),
             )
 
     def add_alert(self, alert: Alert) -> None:
@@ -254,12 +264,15 @@ class Database:
             )
 
     def list_devices(self) -> list[dict[str, Any]]:
+        placeholders = ", ".join("?" for _ in DEVICE_IDS)
         rows = self._conn.execute(
-            """
+            f"""
             SELECT id, name, room, type, last_seen, battery, online, last_value
             FROM devices
+            WHERE id IN ({placeholders})
             ORDER BY id
-            """
+            """,
+            tuple(sorted(DEVICE_IDS)),
         ).fetchall()
         now = datetime.now(timezone.utc)
         devices: list[dict[str, Any]] = []

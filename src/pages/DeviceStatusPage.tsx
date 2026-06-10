@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useQuery } from '@tanstack/react-query'
-import { Activity, BatteryMedium, Camera, Cpu, DoorOpen, Wifi, Wind, X } from 'lucide-react'
+import { Activity, Camera, Cpu, DoorOpen, Droplets, Thermometer, Wifi, Wind, X } from 'lucide-react'
 import { captureCameraFrame, getDevices, getSystemMetrics, type DeviceStatus } from '../api/backend'
 import { useAppStore } from '../store/appStore'
 
@@ -21,6 +21,8 @@ function formatLastSeen(lastSeen: string | null) {
 function iconForDevice(device: DeviceStatus) {
   if (device.type === 'door') return <DoorOpen size={20} className="text-[#10b981]" />
   if (device.type === 'airQuality' || device.id === 'CO2') return <Wind size={20} className="text-[#10b981]" />
+  if (device.type === 'temperature') return <Thermometer size={20} className="text-[#10b981]" />
+  if (device.type === 'humidity') return <Droplets size={20} className="text-[#10b981]" />
   return <Activity size={20} className="text-[#10b981]" />
 }
 
@@ -196,7 +198,7 @@ function RaspberryPiCard({ simpleMode }: { simpleMode: boolean }) {
 
 function ConnectedSensorsCard({ simpleMode, devices }: { simpleMode: boolean; devices: DeviceStatus[] }) {
   const { t } = useTranslation()
-  const visibleDevices = devices.slice(0, 3)
+  const visibleDevices = devices
   const onlineCount = devices.filter((sensor) => sensor.online).length
 
   return (
@@ -208,7 +210,7 @@ function ConnectedSensorsCard({ simpleMode, devices }: { simpleMode: boolean; de
         </p>
       </div>
 
-      <div className={simpleMode ? 'flex flex-col gap-3' : 'grid grid-cols-3 gap-4'}>
+      <div className={simpleMode ? 'flex flex-col gap-3' : 'grid grid-cols-2 xl:grid-cols-3 gap-4'}>
         {visibleDevices.map((sensor) => (
           <div
             key={sensor.id}
@@ -239,10 +241,6 @@ function ConnectedSensorsCard({ simpleMode, devices }: { simpleMode: boolean; de
                   <p className={`text-sm font-semibold ${sensor.online ? 'text-[#10b981]' : 'text-[#6a7282]'}`}>
                     {sensor.online ? t('status.online') : t('status.offline')}
                   </p>
-                </div>
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-[#4a5565]">{t('deviceStatus.battery')}</p>
-                  <p className="text-sm font-semibold text-[#101828]">{sensor.battery}%</p>
                 </div>
 
                 <div className="border-t border-[#e5e7eb] pt-3 flex items-center justify-between">
@@ -285,31 +283,17 @@ function AllDevicesCard({ simpleMode, devices }: { simpleMode: boolean; devices:
                   {!simpleMode && <p className="text-sm text-[#6a7282]">{device.room}</p>}
                 </div>
               </div>
-              {simpleMode ? (
-                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
-                  device.online
-                    ? 'bg-[#f0fdf4] text-[#10b981]'
-                    : 'bg-[#f3f4f6] text-[#6a7282]'
-                }`}>
-                  {device.online ? t('status.online') : t('status.offline')}
-                </span>
-              ) : (
-                <div className="flex items-center gap-1 text-sm font-medium text-[#4a5565]">
-                  <BatteryMedium size={16} className="text-[#4a5565]" />
-                  {device.battery}%
-                </div>
-              )}
+              <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
+                device.online
+                  ? 'bg-[#f0fdf4] text-[#10b981]'
+                  : 'bg-[#f3f4f6] text-[#6a7282]'
+              }`}>
+                {device.online ? t('status.online') : t('status.offline')}
+              </span>
             </div>
 
             {!simpleMode && (
-              <div className="flex items-center justify-between mt-3">
-                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
-                  device.online
-                    ? 'bg-[#f0fdf4] text-[#10b981]'
-                    : 'bg-[#f3f4f6] text-[#6a7282]'
-                }`}>
-                  {device.online ? t('status.online') : t('status.offline')}
-                </span>
+              <div className="flex items-center justify-end mt-3">
                 <p className="text-xs text-[#6a7282]">{t('common.lastSeenTime', { time: formatLastSeen(device.last_seen) })}</p>
               </div>
             )}

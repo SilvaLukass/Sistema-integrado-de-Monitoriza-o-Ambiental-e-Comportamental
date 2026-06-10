@@ -327,7 +327,7 @@ function DeviceStatusCard() {
     queryFn: getDevices,
     refetchInterval: 5_000,
   })
-  const visibleDevices = devices.slice(0, 3)
+  const visibleDevices = devices
   const onlineCount = devices.filter((device: DeviceStatus) => device.online).length
 
   return (
@@ -355,24 +355,15 @@ function DeviceStatusCard() {
                   {!simpleMode && <p className="text-sm text-[#6a7282]">{device.room}</p>}
                 </div>
               </div>
-              {simpleMode ? (
-                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
-                  device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
-                }`}>
-                  {device.online ? t('status.online') : t('status.offline')}
-                </span>
-              ) : (
-                <p className="text-sm font-medium text-[#4a5565]">{device.battery}%</p>
-              )}
+              <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
+                device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
+              }`}>
+                {device.online ? t('status.online') : t('status.offline')}
+              </span>
             </div>
 
             {!simpleMode && (
-              <div className="flex items-center justify-between mt-3">
-                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
-                  device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
-                }`}>
-                  {device.online ? t('status.online') : t('status.offline')}
-                </span>
+              <div className="flex items-center justify-end mt-3">
                 <p className="text-xs text-[#6a7282]">{t('common.lastSeenTime', { time: formatLastSeen(device.last_seen) })}</p>
               </div>
             )}
