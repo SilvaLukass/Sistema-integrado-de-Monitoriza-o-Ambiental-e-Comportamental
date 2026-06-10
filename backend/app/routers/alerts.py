@@ -1,9 +1,13 @@
 from __future__ import annotations
-from ..models import Alert, AlertCreate, AlertCreateResult
+
+import re
 from datetime import datetime, timezone
+from html import escape
 from uuid import uuid4
 
 from fastapi import APIRouter, Request
+
+from ..models import Alert, AlertCreate, AlertCreateResult
 
 from ..services.alert_store import AlertStore
 from ..services.telegram_notifier import TelegramNotifier
@@ -46,6 +50,48 @@ def _severity_prefix(severity: str) -> str:
     }.get(severity, "Alerta")
 
 
+def _severity_emoji(severity: str) -> str:
+    return {
+        "danger": "🚨",
+        "warning": "⚠️",
+        "info": "ℹ️",
+        "success": "✅",
+    }.get(severity, "📢")
+
+
+def _prettify_numbers(text: str) -> str:
+    def replace(match: re.Match[str]) -> str:
+        raw = match.group(0)
+        value = float(raw)
+        if abs(value - round(value)) < 1e-6:
+            return f"{int(round(value)):,}".replace(",", " ")
+        formatted = f"{value:.1f}".rstrip("0").rstrip(".")
+        return formatted
+
+    return re.sub(r"\d+(?:\.\d+)?", replace, text)
+
+
+def _telegram_title(alert: Alert) -> str:
+    title = alert.title.strip()
+    for prefix in ("Alerta imediato:", "Alerta imediato :"):
+        if title.lower().startswith(prefix.lower()):
+            return title[len(prefix) :].strip()
+    return title
+
+
+def _telegram_body(alert: Alert, title: str) -> str:
+    description = alert.description.strip()
+    boilerplate_prefix = "Valor anormal detetado no sensor. Motivo:"
+    if description.lower().startswith(boilerplate_prefix.lower()):
+        reason = description[len(boilerplate_prefix) :].strip().rstrip(".")
+        if reason == title or reason in title or title in reason:
+            return ""
+
+    if description and description != title:
+        return description
+    return ""
+
+
 @router.get("/api/alerts", response_model=list[Alert])
 async def list_alerts(request: Request):
     store: AlertStore = request.app.state.alert_store
@@ -69,14 +115,22 @@ def create_alert_record(payload: AlertCreate, app) -> Alert:
 
 def _format_alert_message(alert: Alert, include_camera_prompt: bool = False) -> str:
     relative = _format_ptpt_relative(alert.timestamp)
-    text = (
-        f"[{_severity_prefix(alert.severity)}] {alert.title}\n"
-        f"{alert.description}\n"
-        f"({relative})"
-    )
+    raw_title = _telegram_title(alert)
+    title = escape(_prettify_numbers(raw_title))
+    body = escape(_prettify_numbers(_telegram_body(alert, raw_title)))
+    severity_label = escape(_severity_prefix(alert.severity))
+
+    lines = [
+        f"{_severity_emoji(alert.severity)} <b>ElderCare — {severity_label}</b>",
+        "",
+        f"<b>{title}</b>",
+    ]
+    if body:
+        lines.extend(["", body])
+    lines.extend(["", f"<i>{escape(relative)}</i>"])
     if include_camera_prompt:
-        text += "\n\nDeseja receber um frame da camara?"
-    return text
+        lines.extend(["", "Deseja receber um frame da câmara?"])
+    return "\n".join(lines)
 
 
 async def notify_alert(alert: Alert, app) -> tuple[bool, str | None]:
