@@ -40,13 +40,13 @@ function SafetyStatusHeader() {
   const { data: aiStatus, isError } = useQuery({
     queryKey: ['model-latest'],
     queryFn: getLatestInference,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
     retry: false,
   })
   const { data: sensors } = useQuery({
     queryKey: ['latest-sensors'],
     queryFn: getLatestSensors,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
     retry: false,
   })
 
