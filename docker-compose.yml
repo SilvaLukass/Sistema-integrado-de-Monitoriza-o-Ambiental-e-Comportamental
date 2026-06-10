@@ -3,8 +3,8 @@ services:
     image: rabbitmq:3.13-management
     container_name: eldercare-rabbitmq
     ports:
-      - "5672:5672"    # AMQP (publishers/consumers)
-      - "15672:15672"  # Management UI (http://localhost:15672 -> eldercare/eldercare_dev)
+      - "5673:5672"    # AMQP (publishers/consumers)
+      - "15673:15672"  # Management UI (http://localhost:15673 -> eldercare/eldercare_dev)
     environment:
       RABBITMQ_DEFAULT_USER: eldercare
       RABBITMQ_DEFAULT_PASS: eldercare_dev
