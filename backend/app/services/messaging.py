@@ -14,6 +14,7 @@ pub/sub e ainda permite, no futuro, routing por sensor/divisao
 from __future__ import annotations
 
 import json
+import time
 
 import aio_pika
 from aio_pika.abc import AbstractRobustConnection
@@ -89,6 +90,7 @@ async def start_consumer(app, settings: Settings) -> None:
             # `message.process()` faz ack apos o bloco; em caso de excecao
             # a mensagem e devolvida (requeue) e nao se perde.
             async with message.process():
+                received_at = time.time()
                 try:
                     payload = json.loads(message.body.decode("utf-8"))
                 except (ValueError, UnicodeDecodeError) as exc:
@@ -106,3 +108,15 @@ async def start_consumer(app, settings: Settings) -> None:
                     await process_model_readings(app, readings)
                 except Exception as exc:
                     print(f"Aviso: consumer nao conseguiu correr inferencia: {exc}")
+
+                # Instrumentacao de latencia: o publisher (RPi) inclui `published_at`
+                # (epoch). transport = publish -> rececao; total = publish -> fim do
+                # processamento. Requer relogios sincronizados (NTP) entre RPi e backend.
+                published_at = payload.get("published_at")
+                if isinstance(published_at, (int, float)):
+                    transport_ms = (received_at - published_at) * 1000.0
+                    total_ms = (time.time() - published_at) * 1000.0
+                    print(
+                        f"[latency] source={source} "
+                        f"transport={transport_ms:.1f}ms total={total_ms:.1f}ms"
+                    )
