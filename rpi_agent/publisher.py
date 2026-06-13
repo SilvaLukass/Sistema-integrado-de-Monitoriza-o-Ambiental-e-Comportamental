@@ -46,7 +46,11 @@ class RabbitMqPublisher:
         source: str = "rpi",
         attempts: int = 3,
     ) -> None:
-        payload: dict[str, Any] = {"source": source, "readings": readings}
+        payload: dict[str, Any] = {
+            "source": source,
+            "readings": readings,
+            "published_at": time.time(),
+        }
         body = json.dumps(payload).encode("utf-8")
         properties = pika.BasicProperties(
             content_type="application/json",
