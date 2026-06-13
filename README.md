@@ -119,6 +119,8 @@ Se correres o `uvicorn` a partir da **raiz** do repositório, o módulo da app p
 | `TELEGRAM_BOT_TOKEN` | Token do bot (BotFather) |
 | `TELEGRAM_CHAT_ID` | ID do chat para envio de mensagens |
 | `CORS_ORIGINS` | Origens permitidas, separadas por vírgula (ex.: `http://localhost:5173,http://localhost:5174`) |
+| `SIMULATOR_ENABLED` | `false` por defeito. Usa dados sintéticos no PC; mete `true` só para demo sem Raspberry Pi |
+| `CONSUMER_ENABLED` | `true` para o backend consumir leituras do RabbitMQ (RPi ou simulador) |
 
 ---
 

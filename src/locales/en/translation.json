@@ -17,8 +17,8 @@
   "settings": {
     "simpleMode": "Simple mode",
     "simpleModeDescription": "Show only online/offline status",
-    "simpleModeOn": "Enabled",
-    "simpleModeOff": "Disabled"
+    "simpleModeOn": "On",
+    "simpleModeOff": "Off"
   },
   "common": {
     "minutesAgo": "{{count}} min ago",
@@ -62,9 +62,10 @@
     "pir": "PIR Sensor",
     "door": "Door Sensor",
     "co2": "CO₂",
+    "co2Level": "CO₂ levels (ppm)",
     "temperature": "Temperature",
     "humidity": "Humidity",
-    "gas": "Gas Sensor",
+    "gas": "Gas / CO₂",
     "airQuality": "Air Quality",
     "movementDetected": "Movement detected",
     "doorOpened": "Door opened"
@@ -84,7 +85,18 @@
     "events": "events",
     "peakActivity": "Peak Activity",
     "totalEvents": "Total Events",
-    "averagePerHour": "Average/Hour"
+    "averagePerHour": "Average/Hour",
+    "overview": "Overview",
+    "routineActivity": "Routine activity",
+    "multisensorAnalysis": "Multisensor analysis (24h)",
+    "multisensorDesc": "Correlation between routine, environment and air quality",
+    "relativeIndex": "Relative index 0-100",
+    "sleepPatternTitle": "Sleep pattern",
+    "sleepPatternDesc": "Minimal activity during the early hours, within the expected range.",
+    "activityPatternTitle": "Daily routine",
+    "activityPatternDesc": "Activity peaks concentrated in the morning and late afternoon.",
+    "airQualityPatternTitle": "Air quality",
+    "airQualityPatternDesc": "Watch for CO₂ peaks around mealtimes."
   },
   "heatmap": {
     "title": "Weekly Occupancy Heatmap",
@@ -152,7 +164,7 @@
     "allDevices": "Device Status",
     "devicesOnline": "{{online}} of {{total}} online",
     "cameraTitle": "Room camera",
-    "cameraSubtitle": "Request a single frame whenever you want to confirm the elder's status.",
+    "cameraSubtitle": "Request a single frame when you want to confirm the resident's status.",
     "cameraButton": "Request camera image",
     "cameraLoading": "Capturing...",
     "cameraPreviewTitle": "Camera frame",
@@ -160,5 +172,14 @@
     "cameraClose": "Close",
     "cameraAlt": "Current camera frame",
     "cameraError": "Could not fetch the camera image."
+  },
+  "activities": {
+    "Sleeping": "Sleeping",
+    "Eating": "Eating",
+    "Relaxing": "Relaxing",
+    "Grooming": "Grooming",
+    "Cooking": "Cooking",
+    "Working": "Working",
+    "Anomalia detectada": "Anomaly detected"
   }
 }

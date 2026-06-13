@@ -62,6 +62,7 @@ export default function AlertsPage() {
   const { data: alerts = [], isLoading, isError, error } = useQuery({
     queryKey: ['alerts'],
     queryFn: getAlerts,
+    refetchInterval: 15_000,
   })
   const renderedAlerts: Alert[] = alerts
 

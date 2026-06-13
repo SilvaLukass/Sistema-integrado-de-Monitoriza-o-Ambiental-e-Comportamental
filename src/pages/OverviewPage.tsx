@@ -40,13 +40,13 @@ function SafetyStatusHeader() {
   const { data: aiStatus, isError } = useQuery({
     queryKey: ['model-latest'],
     queryFn: getLatestInference,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
     retry: false,
   })
   const { data: sensors } = useQuery({
     queryKey: ['latest-sensors'],
     queryFn: getLatestSensors,
-    refetchInterval: 5000,
+    refetchInterval: 1000,
     retry: false,
   })
 
@@ -121,6 +121,7 @@ function ResidentActivityCard() {
   const { data: activity = [] } = useQuery({
     queryKey: ['activity-recent'],
     queryFn: getRecentActivity,
+    refetchInterval: 1000,
   })
 
   return (
@@ -275,6 +276,7 @@ function RecentAlertsCard() {
   const { data: alerts = [] } = useQuery({
     queryKey: ['alerts'],
     queryFn: getAlerts,
+    refetchInterval: 10_000,
   })
   const renderedAlerts = alerts.slice(0, 3)
 
@@ -323,8 +325,9 @@ function DeviceStatusCard() {
   const { data: devices = [] } = useQuery({
     queryKey: ['devices'],
     queryFn: getDevices,
+    refetchInterval: 5_000,
   })
-  const visibleDevices = devices.slice(0, 3)
+  const visibleDevices = devices
   const onlineCount = devices.filter((device: DeviceStatus) => device.online).length
 
   return (
@@ -352,24 +355,15 @@ function DeviceStatusCard() {
                   {!simpleMode && <p className="text-sm text-[#6a7282]">{device.room}</p>}
                 </div>
               </div>
-              {simpleMode ? (
-                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
-                  device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
-                }`}>
-                  {device.online ? t('status.online') : t('status.offline')}
-                </span>
-              ) : (
-                <p className="text-sm font-medium text-[#4a5565]">{device.battery}%</p>
-              )}
+              <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
+                device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
+              }`}>
+                {device.online ? t('status.online') : t('status.offline')}
+              </span>
             </div>
 
             {!simpleMode && (
-              <div className="flex items-center justify-between mt-3">
-                <span className={`text-xs font-medium px-2 py-1 rounded-[10px] ${
-                  device.online ? 'bg-[#f0fdf4] text-[#10b981]' : 'bg-[#f3f4f6] text-[#6a7282]'
-                }`}>
-                  {device.online ? t('status.online') : t('status.offline')}
-                </span>
+              <div className="flex items-center justify-end mt-3">
                 <p className="text-xs text-[#6a7282]">{t('common.lastSeenTime', { time: formatLastSeen(device.last_seen) })}</p>
               </div>
             )}

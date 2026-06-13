@@ -12,21 +12,18 @@ from ..models import Alert, ModelInferenceResponse, OccupancyHeatmapCell
 
 MOTION_SENSOR_ROOMS = {
     "M001": "Sala de Estar",
-    "M003": "Quarto",
-    "M004": "Casa de Banho",
-    "M018": "Cozinha",
 }
 
+# Hardware wired to the Raspberry Pi in the current deployment.
 DEVICE_SEED = [
     ("M001", "PIR - Sala de Estar", "Sala de Estar", "pir"),
-    ("M003", "PIR - Quarto", "Quarto", "pir"),
-    ("M004", "PIR - Casa de Banho", "Casa de Banho", "pir"),
-    ("M018", "PIR - Cozinha", "Cozinha", "pir"),
     ("D001", "Porta - Entrada Principal", "Entrada Principal", "door"),
     ("T001", "Temperatura - Sala", "Sala de Estar", "temperature"),
     ("H001", "Humidade - Sala", "Sala de Estar", "humidity"),
     ("CO2", "Sensor CO2 - Sala", "Sala de Estar", "airQuality"),
 ]
+
+DEVICE_IDS = {device_id for device_id, *_ in DEVICE_SEED}
 
 
 def utc_now_iso() -> str:
@@ -105,6 +102,11 @@ class Database:
             self._conn.commit()
 
     def seed_devices(self) -> None:
+        placeholders = ", ".join("?" for _ in DEVICE_IDS)
+        self._execute(
+            f"DELETE FROM devices WHERE id NOT IN ({placeholders})",
+            tuple(DEVICE_IDS),
+        )
         for device_id, name, room, device_type in DEVICE_SEED:
             self._execute(
                 """
@@ -112,6 +114,14 @@ class Database:
                 VALUES (?, ?, ?, ?, ?, 0)
                 """,
                 (device_id, name, room, device_type, 100),
+            )
+            self._execute(
+                """
+                UPDATE devices
+                SET name = ?, room = ?, type = ?
+                WHERE id = ?
+                """,
+                (name, room, device_type, device_id),
             )
 
     def add_alert(self, alert: Alert) -> None:
@@ -254,12 +264,15 @@ class Database:
             )
 
     def list_devices(self) -> list[dict[str, Any]]:
+        placeholders = ", ".join("?" for _ in DEVICE_IDS)
         rows = self._conn.execute(
-            """
+            f"""
             SELECT id, name, room, type, last_seen, battery, online, last_value
             FROM devices
+            WHERE id IN ({placeholders})
             ORDER BY id
-            """
+            """,
+            tuple(sorted(DEVICE_IDS)),
         ).fetchall()
         now = datetime.now(timezone.utc)
         devices: list[dict[str, Any]] = []
@@ -326,49 +339,58 @@ class Database:
             SELECT ts, payload_json
             FROM sensor_readings
             ORDER BY ts DESC
-            LIMIT 80
+            LIMIT 200
             """
         ).fetchall()
         events: list[dict[str, str]] = []
-        seen: set[tuple[str, str]] = set()
-        for row in rows:
+        last_motion: dict[str, int] = {sensor: 0 for sensor in MOTION_SENSOR_ROOMS}
+        last_door: int | None = None
+
+        for row in reversed(rows):
             payload = json.loads(row["payload_json"])
             dt = datetime.fromisoformat(row["ts"]).astimezone(timezone.utc)
             timestamp = dt.isoformat()
-            minute_label = dt.strftime("%H:%M")
+
             for sensor, room in MOTION_SENSOR_ROOMS.items():
-                if float(payload.get(sensor, 0.0)) <= 0:
-                    continue
-                key = (sensor, minute_label)
-                if key in seen:
-                    continue
-                seen.add(key)
-                events.append(
-                    {
-                        "room": room,
-                        "timestamp": timestamp,
-                        "description": "Movimento detetado",
-                        "sensorLabel": "PIR",
-                        "sensorColor": "blue",
-                    }
-                )
-                if len(events) >= limit:
-                    return events
-            if float(payload.get("D001", 0.0)) > 0 and len(events) < limit:
-                door_key = ("D001", minute_label)
-                if door_key in seen:
-                    continue
-                seen.add(door_key)
-                events.append(
-                    {
-                        "room": "Entrada Principal",
-                        "timestamp": timestamp,
-                        "description": "Porta aberta",
-                        "sensorLabel": "Porta",
-                        "sensorColor": "purple",
-                    }
-                )
-        return events
+                value = int(float(payload.get(sensor, 0.0)) > 0)
+                if value == 1 and last_motion[sensor] == 0:
+                    events.append(
+                        {
+                            "room": room,
+                            "timestamp": timestamp,
+                            "description": "Movimento detetado",
+                            "sensorLabel": "PIR",
+                            "sensorColor": "blue",
+                        }
+                    )
+                last_motion[sensor] = value
+
+            if "D001" in payload:
+                door_value = int(float(payload.get("D001", 0.0)) > 0)
+                if last_door is not None:
+                    if door_value == 1 and last_door == 0:
+                        events.append(
+                            {
+                                "room": "Entrada Principal",
+                                "timestamp": timestamp,
+                                "description": "Porta aberta",
+                                "sensorLabel": "Porta",
+                                "sensorColor": "purple",
+                            }
+                        )
+                    elif door_value == 0 and last_door == 1:
+                        events.append(
+                            {
+                                "room": "Entrada Principal",
+                                "timestamp": timestamp,
+                                "description": "Porta fechada",
+                                "sensorLabel": "Porta",
+                                "sensorColor": "purple",
+                            }
+                        )
+                last_door = door_value
+
+        return list(reversed(events[-limit:]))
 
 
 def init_db(db_path: Path) -> Database:

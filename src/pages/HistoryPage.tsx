@@ -16,6 +16,7 @@ export function HistoryPage() {
   const { data: latestSensors } = useQuery({
     queryKey: ['latest-sensors'],
     queryFn: getLatestSensors,
+    refetchInterval: 30_000,
     retry: false,
   })
   const airQualityScore = co2ToAirQualityScore(latestSensors?.co2 ?? 400)

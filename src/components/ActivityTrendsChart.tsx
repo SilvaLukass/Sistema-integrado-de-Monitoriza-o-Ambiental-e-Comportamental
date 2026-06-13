@@ -24,6 +24,7 @@ export function ActivityTrendsChart() {
   const { data = [], isLoading, isError } = useQuery({
     queryKey: ['sensor-history', 24],
     queryFn: () => getSensorHistory(24),
+    refetchInterval: 30_000,
   })
   const chartData = useMemo(
     () =>
